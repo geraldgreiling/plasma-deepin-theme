@@ -21,6 +21,7 @@
  *   WindowOpacity=0.78       0..1, opacity of the window background
  *   MenuOpacity=0.82         0..1, popup menus
  *   SidebarOpacity=0.0       0..1, opacity of side panels (Dolphin places, ...) on top of the window
+ *   ViewOpacity=0.55         0..1, opacity of content views (file view, lists, text fields) on top of the window
  *   ExcludedApplications=    comma separated list of executable names that stay opaque
  */
 #pragma once
@@ -73,6 +74,7 @@ struct StyleConfig {
     qreal windowOpacity = 0.78;
     qreal menuOpacity = 0.82;
     qreal sidebarOpacity = 0.0;
+    qreal viewOpacity = 0.55;
     QStringList excluded;
 
     static StyleConfig load()
@@ -85,6 +87,7 @@ struct StyleConfig {
         c.windowOpacity = qBound(0.0, g.readEntry("WindowOpacity", c.windowOpacity), 1.0);
         c.menuOpacity = qBound(0.0, g.readEntry("MenuOpacity", c.menuOpacity), 1.0);
         c.sidebarOpacity = qBound(0.0, g.readEntry("SidebarOpacity", c.sidebarOpacity), 1.0);
+        c.viewOpacity = qBound(0.0, g.readEntry("ViewOpacity", c.viewOpacity), 1.0);
         c.excluded = g.readEntry("ExcludedApplications", QStringList());
         return c;
     }

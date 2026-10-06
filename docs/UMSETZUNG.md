@@ -107,6 +107,25 @@ beim SDDM-Theme), Fragen und Statusmeldungen. Die Bilder erzeugt
 Xvfb, inklusive Passworteingabe. Aktivieren: `./install.sh --plymouth`; Plymouth
 muss im Initramfs aktiv sein und der Kernel-Parameter `splash` gesetzt sein.
 
+## Ergänzung – Glas in allen Bereichen (Prüfung)
+
+* **Qt-Widgets-Programme (z. B. Dolphin):** Werkzeugleisten-Bereich und
+  Inhaltsansicht waren undurchsichtig. Ursache: Der Werkzeugleisten-Bereich wurde
+  über den Fensterhintergrund gelegt (Deckkraft addierte sich auf ca. 0,9), und
+  Dolphin setzt die Farbe seiner Dateiansicht direkt aus KColorScheme. Jetzt wird
+  der Werkzeugleisten-Bereich genau so transparent gezeichnet wie die Titelleiste,
+  und Inhaltsansichten bekommen eine transparente Basisfarbe (`ViewOpacity`,
+  Standard 0,55), auch wenn die Anwendung sie selbst setzt. In einer KWin-Sitzung
+  mit Dolphin geprüft.
+* **QML/Kirigami-Programme (z. B. Discover, Systemeinstellungen):** Mit dem
+  Anwendungsstil nicht machbar. Diese Programme zeichnen Fenster- und
+  Seitenhintergründe selbst in den Farben des Kirigami-Plattform-Themes
+  (qqc2-desktop-style) und erzeugen ihre Fenster ohne Alphakanal, bevor ein
+  Qt-Widgets-Stil Einfluss nehmen kann. Glas ginge nur mit einem eigenen
+  Qt-Quick-Controls- und Kirigami-Stil (Fork von qqc2-desktop-style), der beim
+  Laden einen Alphakanal anfordert, transparente Hintergrundfarben liefert und
+  Blur anfordert. Das ist ein eigenes, größeres Teilprojekt.
+
 ## Phase 8 – Paketierung und Tests
 
 * AUR: `packaging/aur/plasma-deepin-glass-git` (sofort nutzbar) und

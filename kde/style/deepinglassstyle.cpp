@@ -102,6 +102,7 @@ Style::Style()
 {
     setObjectName(QStringLiteral("DeepinGlass"));
     m_config = StyleConfig::load();
+    m_decoConfig = DecorationConfig::load();
     const QString app = QFileInfo(QCoreApplication::applicationFilePath()).fileName();
     m_excludedApplication = !m_config.translucent || s_builtinExcluded.contains(app) || m_config.excluded.contains(app)
         || QCoreApplication::applicationName() == QLatin1String("plasmashell");
@@ -130,6 +131,17 @@ void Style::polish(QApplication *app)
 void Style::polish(QPalette &palette)
 {
     QProxyStyle::polish(palette);
+    if (m_excludedApplication || !compositingActive() || m_config.viewOpacity >= 1.0) {
+        return;
+    }
+    // Content areas (file views, lists, text fields) are painted with the Base colour by
+    // the applications themselves, often outside of the style (e.g. Dolphin's view is a
+    // QGraphicsView that uses the application palette). A translucent Base colour is
+    // the only way to let the glass shine through there too.
+    for (auto group : {QPalette::Active, QPalette::Inactive, QPalette::Disabled}) {
+        palette.setColor(group, QPalette::Base, withAlpha(palette.color(group, QPalette::Base), m_config.viewOpacity));
+        palette.setColor(group, QPalette::AlternateBase, withAlpha(palette.color(group, QPalette::AlternateBase), m_config.viewOpacity));
+    }
 }
 
 //____________________________________________________________________________
@@ -236,18 +248,52 @@ void Style::paintWindowBackground(QWidget *window, QPaintEvent *event) const
     const QPalette &pal = window->palette();
     const auto group = window->isActiveWindow() ? QPalette::Active : QPalette::Inactive;
 
+    // Source composition: the areas are written once, never stacked on top of each other,
+    // so the tool bar area is exactly as transparent as the title bar above it.
     painter.setCompositionMode(QPainter::CompositionMode_Source);
-    painter.fillRect(window->rect(), withAlpha(pal.color(group, QPalette::Window), m_config.windowOpacity));
-    painter.setCompositionMode(QPainter::CompositionMode_SourceOver);
-
-    // KDE applications: tool bar area in the header colour, like the title bar above it
     const QRect tools = toolsAreaRect(window);
+    QRegion rest(window->rect());
     if (tools.isValid()) {
-        // the decoration uses the header colour, see the colour schemes
-        const QColor header = pal.color(group, QPalette::Window).darker(isDark(pal) ? 115 : 102);
-        painter.fillRect(tools, withAlpha(header, std::min(1.0, m_config.windowOpacity * 0.6)));
+        rest -= tools;
+        // Breeze gives tool bars the header palette, the decoration paints the title bar
+        // in the same header colour with the decoration's opacity
+        QColor header = pal.color(group, QPalette::Window);
+        if (auto tb = window->findChild<QToolBar *>(QString(), Qt::FindDirectChildrenOnly)) {
+            header = tb->palette().color(group, QPalette::Window);
+        }
+        const qreal opacity = window->isActiveWindow() ? m_decoConfig.activeOpacity : m_decoConfig.inactiveOpacity;
+        painter.fillRect(tools, withAlpha(header, opacity));
+    }
+    for (const QRect &r : rest) {
+        painter.fillRect(r, withAlpha(pal.color(group, QPalette::Window), m_config.windowOpacity));
+    }
+    painter.setCompositionMode(QPainter::CompositionMode_SourceOver);
+    if (tools.isValid()) {
         painter.setPen(withAlpha(pal.color(QPalette::WindowText), 0.08));
         painter.drawLine(tools.bottomLeft(), tools.bottomRight());
+    }
+}
+
+void Style::makeContentTranslucent(QWidget *widget) const
+{
+    if (m_config.viewOpacity >= 1.0) {
+        return;
+    }
+    // only touch opaque content colours, so this neither stacks up nor fights with
+    // colours that are translucent on purpose (side panels, inactive split views)
+    QPalette pal = widget->palette();
+    bool changed = false;
+    for (auto group : {QPalette::Active, QPalette::Inactive, QPalette::Disabled}) {
+        for (auto role : {QPalette::Base, QPalette::AlternateBase}) {
+            const QColor c = pal.color(group, role);
+            if (c.alpha() == 255) {
+                pal.setColor(group, role, withAlpha(c, m_config.viewOpacity));
+                changed = true;
+            }
+        }
+    }
+    if (changed) {
+        widget->setPalette(pal);
     }
 }
 
@@ -258,6 +304,11 @@ bool Style::eventFilter(QObject *object, QEvent *event)
         return QProxyStyle::eventFilter(object, event);
     }
     switch (event->type()) {
+    case QEvent::PaletteChange:
+        if (qobject_cast<QAbstractScrollArea *>(widget) && isTranslucentWindow(widget->window())) {
+            makeContentTranslucent(widget);
+        }
+        break;
     case QEvent::Paint:
         if (isTranslucentWindow(widget)) {
             paintWindowBackground(widget, static_cast<QPaintEvent *>(event));
@@ -298,6 +349,13 @@ void Style::polish(QWidget *widget)
     // side panels (Dolphin places, settings sidebars): let the window glass shine through
     if (auto area = qobject_cast<QAbstractScrollArea *>(widget)) {
         const bool sidePanel = area->property("_kde_side_panel_view").toBool() || area->inherits("KFilePlacesView");
+        if (!sidePanel && isTranslucentWindow(area->window())) {
+            // content views: some applications set an opaque palette of their own
+            // (Dolphin takes the view colour straight from KColorScheme), so keep watching
+            makeContentTranslucent(area);
+            area->removeEventFilter(this);
+            area->installEventFilter(this);
+        }
         if (sidePanel && area->viewport() && isTranslucentWindow(area->window())) {
             QPalette pal = area->palette();
             for (auto group : {QPalette::Active, QPalette::Inactive, QPalette::Disabled}) {

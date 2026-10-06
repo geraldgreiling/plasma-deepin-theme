@@ -86,6 +86,7 @@ Translucent=true
 WindowOpacity=0.78
 MenuOpacity=0.82
 SidebarOpacity=0.0
+ViewOpacity=0.55
 ExcludedApplications=myglapp,anotherapp
 ```
 
@@ -96,8 +97,12 @@ System Settings → Desktop Effects → *Blur*.
 ## Limitations
 
 * **Glass in applications** works for Qt Widgets applications (Dolphin, Kate,
-  Konsole, …). QML/Kirigami applications (System Settings, Discover) use
-  their own style and stay opaque; their window decoration is still glass.
+  Konsole, …), including their tool bars and content views (`ViewOpacity`).
+  QML/Kirigami applications (Discover, System Settings, Elisa, …) stay opaque
+  except for the title bar: they do not use the Qt Widgets style for their
+  window and page backgrounds, and their windows are created without an alpha
+  channel. Changing that would need a separate Qt Quick Controls/Kirigami style
+  (a fork of qqc2-desktop-style).
   GTK applications cannot request blur from KWin, so the GTK themes are opaque.
 * Applications that render with OpenGL/video overlays are kept opaque by an
   exclusion list (see `kde/style/deepinglassstyle.cpp`, extendable via

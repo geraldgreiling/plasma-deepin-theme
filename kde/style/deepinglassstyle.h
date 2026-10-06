@@ -58,6 +58,7 @@ private:
     bool compositingActive() const;
     void updateBlur(QWidget *widget) const;
     void paintWindowBackground(QWidget *window, QPaintEvent *event) const;
+    void makeContentTranslucent(QWidget *widget) const;
     QRect toolsAreaRect(const QWidget *window) const;
 
     void drawButtonPanel(const QStyleOption *option, QPainter *painter, bool isDefault, bool flat) const;
@@ -65,6 +66,7 @@ private:
     void drawCheckIndicator(const QStyleOption *option, QPainter *painter, bool radio) const;
 
     StyleConfig m_config;
+    DecorationConfig m_decoConfig;
     bool m_excludedApplication = false;
     mutable QSet<const QWidget *> m_translucentWindows;
 };
