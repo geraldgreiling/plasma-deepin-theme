@@ -96,6 +96,17 @@ weichgezeichneter Hintergrund (`theme.conf: background=`), Uhr, Avatar,
 Passwortfeld in Milchglas-Optik, Sitzungsauswahl und Energie-Buttons. Getestet mit
 `sddm-greeter-qt6 --test-mode`.
 
+## Ergänzung – Plymouth-Bootanimation
+
+`plymouth/plasma-deepin/` (Script-Modul): derselbe Verlauf, dasselbe Launcher-Icon,
+dieselben drei pulsierenden Punkte und derselbe „Plasma“-Schriftzug wie der
+Splash-Screen, mit gleichen Abständen (Grid-Unit 18 px) und gleichem Einblenden.
+Dazu Passwortabfrage für verschlüsselte Datenträger (Feld in Milchglas-Optik wie
+beim SDDM-Theme), Fragen und Statusmeldungen. Die Bilder erzeugt
+`tools/gen-plymouth-assets.py`. Getestet mit `plymouthd` und dem X11-Renderer in
+Xvfb, inklusive Passworteingabe. Aktivieren: `./install.sh --plymouth`; Plymouth
+muss im Initramfs aktiv sein und der Kernel-Parameter `splash` gesetzt sein.
+
 ## Phase 8 – Paketierung und Tests
 
 * AUR: `packaging/aur/plasma-deepin-glass-git` (sofort nutzbar) und

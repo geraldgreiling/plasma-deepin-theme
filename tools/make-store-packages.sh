@@ -10,6 +10,7 @@
 #   Icons ................ Deepin-Bloom-icons.tar.xz
 #   Cursors .............. Deepin-Bloom-cursors.tar.xz
 #   SDDM ................. plasma-deepin-sddm.tar.gz
+#   Plymouth ............. plasma-deepin-plymouth.tar.gz
 #   GTK 3/4 .............. Deepin-Glass-gtk.tar.gz
 # The window decoration and the application style are native plugins and are
 # distributed through the AUR (packaging/aur), not the KDE Store.
@@ -27,6 +28,7 @@ for lnf in org.plasmadeepin.light.desktop org.plasmadeepin.dark.desktop; do
     tar -C plasma/look-and-feel -czf "$DIST/$lnf.tar.gz" "$lnf"
 done
 tar -C sddm -czf "$DIST/plasma-deepin-sddm.tar.gz" plasma-deepin
+tar -C plymouth -czf "$DIST/plasma-deepin-plymouth.tar.gz" plasma-deepin
 tar -C gtk -czf "$DIST/Deepin-Glass-gtk.tar.gz" Deepin-Glass Deepin-Glass-Dark libadwaita
 
 # icons and cursors are built from linuxdeepin/deepin-icon-theme

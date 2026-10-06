@@ -8,6 +8,7 @@
 #   ./install.sh                 colours, Plasma style, global themes, icons, cursors, GTK
 #   ./install.sh --libadwaita    additionally write ~/.config/gtk-4.0/gtk.css (backup is kept)
 #   ./install.sh --sddm          additionally install the SDDM theme (uses sudo)
+#   ./install.sh --plymouth      additionally install and activate the Plymouth boot animation (uses sudo)
 #   ./install.sh --native        additionally build and install decoration + app style (uses sudo)
 #   ./install.sh --uninstall     remove everything this script installed for the user
 set -euo pipefail
@@ -67,6 +68,19 @@ if [[ "$ARGS" == *" --sddm "* ]]; then
     sudo rm -rf /usr/share/sddm/themes/plasma-deepin
     sudo cp -r sddm/plasma-deepin /usr/share/sddm/themes/
     echo "   select it in System Settings > Colours & Themes > Login Screen (SDDM)"
+fi
+
+if [[ "$ARGS" == *" --plymouth "* ]]; then
+    echo ":: Plymouth boot animation (sudo)"
+    sudo rm -rf /usr/share/plymouth/themes/plasma-deepin
+    sudo cp -r plymouth/plasma-deepin /usr/share/plymouth/themes/
+    if command -v plymouth-set-default-theme >/dev/null; then
+        # -R rebuilds the initramfs so the theme is used at the next boot
+        sudo plymouth-set-default-theme -R plasma-deepin
+    else
+        echo "   plymouth-set-default-theme not found: set Theme=plasma-deepin in /etc/plymouth/plymouthd.conf"
+        echo "   and rebuild the initramfs (mkinitcpio -P or dracut --regenerate-all --force)"
+    fi
 fi
 
 if [[ "$ARGS" == *" --native "* ]]; then

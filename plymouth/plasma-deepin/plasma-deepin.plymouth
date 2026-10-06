@@ -1,0 +1,8 @@
+[Plymouth Theme]
+Name=Deepin (Plasma)
+Description=Boot animation matching the splash screen of the plasma-deepin-theme
+ModuleName=script
+
+[script]
+ImageDir=/usr/share/plymouth/themes/plasma-deepin
+ScriptFile=/usr/share/plymouth/themes/plasma-deepin/plasma-deepin.script

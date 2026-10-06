@@ -27,6 +27,7 @@ endorsed by Deepin / UnionTech. "Deepin" is used only to describe the look.
 | Icons | Deepin Bloom, Deepin Bloom Dark | KDE Store |
 | Cursors | Deepin Bloom Cursors (+ Dark) | KDE Store |
 | Login screen (SDDM, Qt 6) | Deepin (Plasma) | KDE Store |
+| Boot animation (Plymouth, looks like the splash screen, with LUKS password prompt) | Deepin (Plasma) | KDE Store |
 | GTK 3 / GTK 4 themes (+ stylesheet for libadwaita apps) | Deepin-Glass, Deepin-Glass-Dark | KDE Store |
 
 ## Installation
@@ -41,6 +42,8 @@ paru -S plasma-deepin-glass-git     # or yay, or makepkg in packaging/aur/
 
 System Settings → Colours & Themes → *Get New…* in the respective page
 (Colours, Plasma Style, Icons, Cursors, Login Screen, Global Theme).
+The Plymouth theme is installed by hand: unpack it to `/usr/share/plymouth/themes/`
+and run `sudo plymouth-set-default-theme -R plasma-deepin`.
 Install the parts first, then the global theme: a global theme cannot pull in
 its dependencies by itself.
 
@@ -50,6 +53,7 @@ its dependencies by itself.
 ./install.sh                # colours, Plasma style, global themes, icons, cursors, GTK
 ./install.sh --native       # also build + install decoration and app style (sudo)
 ./install.sh --sddm         # also install the SDDM theme (sudo)
+./install.sh --plymouth     # also install + activate the Plymouth boot animation (sudo, rebuilds the initramfs)
 ./install.sh --libadwaita   # also write ~/.config/gtk-4.0/gtk.css (a backup is kept)
 ./install.sh --uninstall
 ```
@@ -117,6 +121,7 @@ color-schemes/      Deepin Light / Dark            (generated: tools/gen-colors.
 plasma/desktoptheme Plasma style "plasma-deepin"   (generated: tools/gen-plasma-style.py)
 plasma/look-and-feel global themes, layout script, splash screen
 sddm/plasma-deepin  SDDM theme (Qt 6)
+plymouth/           Plymouth boot animation (images: tools/gen-plymouth-assets.py)
 gtk/                GTK 3/4 themes + libadwaita sheet (generated: tools/gen-gtk-themes.py)
 tools/              generators, icon/cursor build, KDE Store packaging
 packaging/aur/      PKGBUILDs

@@ -5,7 +5,7 @@
 #   - Deepin Glass window decoration (KDecoration3 plugin)
 #   - Deepin Glass application style (Qt 6 widget style)
 # Optionally installs all data components (colours, Plasma style, global theme,
-# icons, cursors, SDDM, GTK) system-wide with -DINSTALL_THEME_DATA=ON.
+# icons, cursors, SDDM, Plymouth, GTK) system-wide with -DINSTALL_THEME_DATA=ON.
 
 cmake_minimum_required(VERSION 3.22)
 project(plasma-deepin-theme VERSION 1.0.0 LANGUAGES CXX)
@@ -15,7 +15,7 @@ set(KF6_MIN_VERSION "6.0.0")
 
 option(BUILD_DECORATION "Build the Deepin Glass window decoration" ON)
 option(BUILD_STYLE "Build the Deepin Glass Qt application style" ON)
-option(INSTALL_THEME_DATA "Install colour schemes, Plasma style, global theme, SDDM theme and GTK themes" OFF)
+option(INSTALL_THEME_DATA "Install colour schemes, Plasma style, global theme, SDDM, Plymouth and GTK themes" OFF)
 
 find_package(ECM ${KF6_MIN_VERSION} REQUIRED NO_MODULE)
 set(CMAKE_MODULE_PATH ${ECM_MODULE_PATH})
@@ -45,6 +45,7 @@ if(INSTALL_THEME_DATA)
     install(DIRECTORY plasma/desktoptheme/ DESTINATION ${KDE_INSTALL_DATADIR}/plasma/desktoptheme)
     install(DIRECTORY plasma/look-and-feel/ DESTINATION ${KDE_INSTALL_DATADIR}/plasma/look-and-feel)
     install(DIRECTORY sddm/ DESTINATION ${KDE_INSTALL_DATADIR}/sddm/themes)
+    install(DIRECTORY plymouth/ DESTINATION ${KDE_INSTALL_DATADIR}/plymouth/themes)
     install(DIRECTORY gtk/Deepin-Glass gtk/Deepin-Glass-Dark DESTINATION ${KDE_INSTALL_DATADIR}/themes)
 endif()
 

@@ -1,0 +1,167 @@
+// SPDX-FileCopyrightText: 2026 plasma-deepin-theme contributors
+// SPDX-License-Identifier: GPL-3.0-or-later
+//
+// Plymouth boot animation matching the Plasma splash screen of the Deepin
+// global theme (plasma/look-and-feel/*/contents/splash/Splash.qml):
+// dark blue gradient, launcher icon in the centre, three pulsing blue dots
+// below it, "Plasma" at the bottom. Also handles disk encryption passwords,
+// questions and messages.
+
+// ------------------------------------------------------------------ layout
+// Kirigami grid unit of the splash screen at 100 % scaling
+gu = 18;
+
+Window.SetBackgroundTopColor(0.110, 0.141, 0.200);
+Window.SetBackgroundBottomColor(0.051, 0.067, 0.090);
+
+screen_w = Window.GetWidth();
+screen_h = Window.GetHeight();
+screen_x = Window.GetX();
+screen_y = Window.GetY();
+center_x = screen_x + screen_w / 2;
+center_y = screen_y + screen_h / 2;
+
+// logo: centred, 2 grid units above the middle
+logo.image = Image("logo.png");
+logo.sprite = Sprite(logo.image);
+logo.x = center_x - logo.image.GetWidth() / 2;
+logo.y = center_y - 2 * gu - logo.image.GetHeight() / 2;
+logo.sprite.SetPosition(logo.x, logo.y, 10);
+logo.sprite.SetOpacity(0);
+
+// three dots, 3 grid units below the logo, 0.6 grid units apart
+dot_image = Image("dot.png");
+dot_size = dot_image.GetWidth();
+dot_spacing = Math.Int(gu * 0.6);
+dots_width = 3 * dot_size + 2 * dot_spacing;
+dots_y = logo.y + logo.image.GetHeight() + 3 * gu;
+for (i = 0; i < 3; i++) {
+    dot[i] = Sprite(dot_image);
+    dot[i].SetPosition(center_x - dots_width / 2 + i * (dot_size + dot_spacing), dots_y, 10);
+    dot[i].SetOpacity(0);
+}
+
+// "Plasma" at the bottom, like the splash screen
+label.image = Image.Text("Plasma", 0.545, 0.584, 0.655, 1, "Sans 9");
+label.sprite = Sprite(label.image);
+label.sprite.SetPosition(center_x - label.image.GetWidth() / 2, screen_y + screen_h - 2 * gu - label.image.GetHeight(), 10);
+label.sprite.SetOpacity(0);
+
+// ------------------------------------------------------------------ animation
+frame = 0;          // refresh function runs at 50 frames per second
+fade_frames = 40;   // 0.8 s fade-in, like the splash screen
+mode = "normal";    // "normal" or "prompt"
+
+fun clamp01(v) {
+    if (v < 0) return 0;
+    if (v > 1) return 1;
+    return v;
+}
+
+// Opacity of dot i at time t (seconds): each dot waits i * 0.2 s, fades
+// 0.3 -> 1 -> 0.3 in 0.8 s and waits again; the cycle is 1.2 s long.
+fun dot_opacity(i, t) {
+    period = 1.2;
+    phase = t - Math.Int(t / period) * period - i * 0.2;
+    if (phase < 0 || phase > 0.8) return 0.3;
+    if (phase < 0.4) return 0.3 + 0.7 * (phase / 0.4);
+    return 1.0 - 0.7 * ((phase - 0.4) / 0.4);
+}
+
+fun refresh_callback() {
+    global.frame++;
+    fade = clamp01(global.frame / fade_frames);
+    t = global.frame / 50;
+    logo.sprite.SetOpacity(fade);
+    label.sprite.SetOpacity(fade);
+    for (i = 0; i < 3; i++) {
+        if (global.mode == "normal")
+            dot[i].SetOpacity(fade * dot_opacity(i, t));
+        else
+            dot[i].SetOpacity(0);
+    }
+}
+Plymouth.SetRefreshFunction(refresh_callback);
+
+// ------------------------------------------------------------------ password / question prompt
+entry.image = Image("entry.png");
+entry.sprite = Sprite(entry.image);
+entry.x = center_x - entry.image.GetWidth() / 2;
+entry.y = dots_y + gu;
+entry.sprite.SetPosition(entry.x, entry.y, 20);
+entry.sprite.SetOpacity(0);
+
+bullet_image = Image("bullet.png");
+prompt.sprite = Sprite();
+prompt.sprite.SetPosition(center_x, entry.y - 2 * gu, 20);
+answer.sprite = Sprite();
+
+fun hide_prompt() {
+    entry.sprite.SetOpacity(0);
+    prompt.sprite.SetOpacity(0);
+    answer.sprite.SetOpacity(0);
+    for (i = 0; global.bullet[i]; i++)
+        global.bullet[i].SetOpacity(0);
+}
+
+fun show_prompt(text) {
+    global.mode = "prompt";
+    entry.sprite.SetOpacity(1);
+    global.prompt.image = Image.Text(text, 1, 1, 1, 0.85, "Sans 11");
+    prompt.sprite.SetImage(global.prompt.image);
+    prompt.sprite.SetPosition(center_x - global.prompt.image.GetWidth() / 2, entry.y - global.prompt.image.GetHeight() - Math.Int(gu * 0.6), 20);
+    prompt.sprite.SetOpacity(1);
+}
+
+fun display_normal_callback() {
+    global.mode = "normal";
+    hide_prompt();
+}
+
+fun display_password_callback(text, count) {
+    if (text == "") text = "Password";
+    show_prompt(text);
+    answer.sprite.SetOpacity(0);
+    gap = 6;
+    max_bullets = Math.Int((entry.image.GetWidth() - 2 * gu) / (bullet_image.GetWidth() + gap));
+    shown = count;
+    if (shown > max_bullets) shown = max_bullets;
+    for (i = 0; i < shown; i++) {
+        if (!global.bullet[i]) global.bullet[i] = Sprite(bullet_image);
+        global.bullet[i].SetPosition(entry.x + gu + i * (bullet_image.GetWidth() + gap),
+                              entry.y + entry.image.GetHeight() / 2 - bullet_image.GetHeight() / 2, 30);
+        global.bullet[i].SetOpacity(1);
+    }
+    for (i = shown; global.bullet[i]; i++)
+        global.bullet[i].SetOpacity(0);
+}
+
+fun display_question_callback(text, value) {
+    show_prompt(text);
+    for (i = 0; global.bullet[i]; i++)
+        global.bullet[i].SetOpacity(0);
+    global.answer.image = Image.Text(value, 1, 1, 1, 1, "Sans 11");
+    answer.sprite.SetImage(global.answer.image);
+    answer.sprite.SetPosition(entry.x + gu, entry.y + entry.image.GetHeight() / 2 - global.answer.image.GetHeight() / 2, 30);
+    answer.sprite.SetOpacity(1);
+}
+
+Plymouth.SetDisplayNormalFunction(display_normal_callback);
+Plymouth.SetDisplayPasswordFunction(display_password_callback);
+Plymouth.SetDisplayQuestionFunction(display_question_callback);
+
+// ------------------------------------------------------------------ messages
+message.sprite = Sprite();
+message.sprite.SetPosition(center_x, screen_y + screen_h - 5 * gu, 20);
+
+fun message_callback(text) {
+    global.message.image = Image.Text(text, 1, 1, 1, 0.7, "Sans 10");
+    message.sprite.SetImage(global.message.image);
+    message.sprite.SetPosition(center_x - global.message.image.GetWidth() / 2, screen_y + screen_h - 5 * gu, 20);
+}
+Plymouth.SetMessageFunction(message_callback);
+
+fun quit_callback() {
+    hide_prompt();
+}
+Plymouth.SetQuitFunction(quit_callback);
