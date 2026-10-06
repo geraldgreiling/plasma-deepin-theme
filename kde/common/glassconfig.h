@@ -2,40 +2,56 @@
  * SPDX-FileCopyrightText: 2026 plasma-deepin-theme contributors
  * SPDX-License-Identifier: GPL-3.0-or-later
  *
- * Shared settings of the Deepin Glass window decoration and application style.
- * Both read ~/.config/deepinglassrc, so one file controls the whole glass look:
- *
- *   [Decoration]
- *   TitleBarHeight=40        logical pixels
- *   CornerRadius=12          window corner radius
- *   ActiveOpacity=0.72       0..1, opacity of the title bar of the active window
- *   InactiveOpacity=0.58     0..1, inactive windows
- *   Blur=true                ask KWin to blur behind the title bar
- *   ShadowSize=36            0 disables the shadow
- *   ShadowStrength=0.38      0..1
- *   Outline=true             thin outline around the window
- *   CenterTitle=true
- *
- *   [Style]
- *   Translucent=true         frosted window backgrounds for Qt Widgets applications
- *   WindowOpacity=0.78       0..1, opacity of the window background
- *   MenuOpacity=0.82         0..1, popup menus
- *   SidebarOpacity=0.0       0..1, opacity of side panels (Dolphin places, ...) on top of the window
- *   ViewOpacity=0.55         0..1, opacity of content views (file view, lists, text fields) on top of the window
- *   ExcludedApplications=    comma separated list of executable names that stay opaque
+ * Shared settings of the Deepin Glass window decoration, the Qt Widgets
+ * application style and the Kirigami (Qt Quick) integration.
+ * All of them read ~/.config/deepinglassrc. If the file does not exist it is
+ * created from kde/common/deepinglassrc.default (defaults with comments).
  */
 #pragma once
 
 #include <KConfigGroup>
 #include <KSharedConfig>
+#include <QDir>
+#include <QFileInfo>
+#include <QSaveFile>
+#include <QStandardPaths>
 #include <QStringList>
 #include <QtGlobal>
+
+// Default file content, generated from kde/common/deepinglassrc.default by CMake
+#include "deepinglass_defaultconfig.h"
 
 namespace DeepinGlass
 {
 
+
+/// Creates ~/.config/deepinglassrc with the defaults and comments if it does not exist yet.
+inline void ensureConfigFile()
+{
+    static bool checked = false;
+    if (checked) {
+        return;
+    }
+    checked = true;
+    const QString dir = QStandardPaths::writableLocation(QStandardPaths::GenericConfigLocation);
+    if (dir.isEmpty()) {
+        return;
+    }
+    const QString path = dir + QStringLiteral("/deepinglassrc");
+    if (QFileInfo::exists(path)) {
+        return;
+    }
+    QDir().mkpath(dir);
+    QSaveFile file(path);
+    if (file.open(QIODevice::WriteOnly)) {
+        file.write(s_defaultConfig);
+        file.commit();
+    }
+}
+
 inline KSharedConfig::Ptr config()
 {
+    ensureConfigFile();
     return KSharedConfig::openConfig(QStringLiteral("deepinglassrc"), KConfig::SimpleConfig);
 }
 
@@ -88,6 +104,28 @@ struct StyleConfig {
         c.menuOpacity = qBound(0.0, g.readEntry("MenuOpacity", c.menuOpacity), 1.0);
         c.sidebarOpacity = qBound(0.0, g.readEntry("SidebarOpacity", c.sidebarOpacity), 1.0);
         c.viewOpacity = qBound(0.0, g.readEntry("ViewOpacity", c.viewOpacity), 1.0);
+        c.excluded = g.readEntry("ExcludedApplications", QStringList());
+        return c;
+    }
+};
+
+struct QuickConfig {
+    bool translucent = true;
+    qreal windowOpacity = 0.5;
+    qreal viewOpacity = 0.4;
+    qreal headerOpacity = 0.45;
+    QStringList excluded;
+
+    static QuickConfig load()
+    {
+        auto cfg = config();
+        cfg->reparseConfiguration();
+        const KConfigGroup g(cfg, QStringLiteral("QtQuick"));
+        QuickConfig c;
+        c.translucent = g.readEntry("Translucent", c.translucent);
+        c.windowOpacity = qBound(0.0, g.readEntry("WindowOpacity", c.windowOpacity), 1.0);
+        c.viewOpacity = qBound(0.0, g.readEntry("ViewOpacity", c.viewOpacity), 1.0);
+        c.headerOpacity = qBound(0.0, g.readEntry("HeaderOpacity", c.headerOpacity), 1.0);
         c.excluded = g.readEntry("ExcludedApplications", QStringList());
         return c;
     }

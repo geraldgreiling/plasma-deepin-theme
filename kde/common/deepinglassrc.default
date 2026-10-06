@@ -1,0 +1,56 @@
+# Deepin Glass settings
+# Shared by the window decoration, the Qt Widgets application style and the
+# Kirigami/Qt Quick integration of plasma-deepin-theme.
+#
+# Apply changes:
+#   window decoration:  qdbus6 org.kde.KWin /KWin reconfigure
+#   applications:       restart the application
+# Opacities go from 0 (fully transparent) to 1 (opaque). Blur must be enabled
+# in System Settings > Desktop Effects.
+
+[Decoration]
+# Height of the title bar in logical pixels
+TitleBarHeight=40
+# Radius of the window corners
+CornerRadius=12
+# Opacity of the title bar of the active / inactive windows
+ActiveOpacity=0.72
+InactiveOpacity=0.58
+# Ask KWin to blur behind the title bar
+Blur=true
+# Size and strength of the window shadow (0 disables it)
+ShadowSize=36
+ShadowStrength=0.38
+# Thin outline around windows
+Outline=true
+# Centre the window title
+CenterTitle=true
+
+[Style]
+# Qt Widgets applications (Dolphin, Kate, Konsole, ...)
+# Frosted glass window backgrounds
+Translucent=true
+# Opacity of the window background
+WindowOpacity=0.78
+# Opacity of popup menus
+MenuOpacity=0.82
+# Opacity of side panels (Dolphin places, ...) on top of the window background
+SidebarOpacity=0.0
+# Opacity of content views (file view, lists, text fields) on top of the window background
+ViewOpacity=0.55
+# Executable names that stay opaque, comma separated, e.g. ExcludedApplications=krita,kdenlive
+ExcludedApplications=
+
+[QtQuick]
+# Qt Quick / Kirigami applications (Discover, System Monitor, Elisa, ...)
+# Frosted glass windows, pages and tool bars
+Translucent=true
+# Opacity of window and page backgrounds (pages are drawn on top of the window,
+# so the visible opacity is higher than this value)
+WindowOpacity=0.5
+# Opacity of content views (lists, cards) on top of that
+ViewOpacity=0.4
+# Opacity of tool bars and page headers on top of the window background
+HeaderOpacity=0.45
+# Executable names that stay opaque, comma separated
+ExcludedApplications=

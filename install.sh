@@ -41,6 +41,10 @@ for lnf in org.plasmadeepin.light.desktop org.plasmadeepin.dark.desktop; do
     cp -r "plasma/look-and-feel/$lnf" "$DATA/plasma/look-and-feel/"
 done
 
+echo ":: default settings (~/.config/deepinglassrc)"
+mkdir -p "$CONF"
+[[ -f "$CONF/deepinglassrc" ]] || cp kde/common/deepinglassrc.default "$CONF/deepinglassrc"
+
 echo ":: GTK 3/4 themes"
 for t in Deepin-Glass Deepin-Glass-Dark; do
     rm -rf "$DATA/themes/$t"

@@ -16,7 +16,8 @@ jobs:
       - name: Install dependencies
         run: |
           pacman -Syu --noconfirm --needed base-devel git cmake extra-cmake-modules \
-            kdecoration breeze kconfig kcoreaddons kwindowsystem qt6-base python
+            kdecoration breeze kconfig kcoreaddons kwindowsystem kcolorscheme kiconthemes \
+            kirigami qt6-declarative qt6-base python
       - uses: actions/checkout@v4
       - name: Build decoration and application style
         run: |

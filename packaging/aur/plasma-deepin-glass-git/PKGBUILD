@@ -4,11 +4,12 @@ pkgname=plasma-deepin-glass-git
 _repo=plasma-deepin-theme
 pkgver=r1.0000000
 pkgrel=1
-pkgdesc="Frosted glass window decoration and Qt application style in the Deepin look for KDE Plasma 6 (git)"
+pkgdesc="Frosted glass window decoration and Qt/Kirigami application style in the Deepin look for KDE Plasma 6 (git)"
 arch=('x86_64' 'aarch64')
 url="https://github.com/geraldgreiling/plasma-deepin-theme"
 license=('GPL-3.0-or-later')
-depends=('kdecoration' 'breeze' 'kconfig' 'kcoreaddons' 'kwindowsystem' 'qt6-base' 'gcc-libs' 'glibc')
+depends=('kdecoration' 'breeze' 'kconfig' 'kcoreaddons' 'kwindowsystem' 'kcolorscheme' 'kiconthemes'
+         'kirigami' 'qqc2-desktop-style' 'qt6-base' 'qt6-declarative' 'gcc-libs' 'glibc')
 makedepends=('git' 'cmake' 'extra-cmake-modules')
 provides=('plasma-deepin-glass')
 conflicts=('plasma-deepin-glass')

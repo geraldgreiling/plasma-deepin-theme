@@ -117,14 +117,39 @@ muss im Initramfs aktiv sein und der Kernel-Parameter `splash` gesetzt sein.
   und Inhaltsansichten bekommen eine transparente Basisfarbe (`ViewOpacity`,
   Standard 0,55), auch wenn die Anwendung sie selbst setzt. In einer KWin-Sitzung
   mit Dolphin geprüft.
-* **QML/Kirigami-Programme (z. B. Discover, Systemeinstellungen):** Mit dem
-  Anwendungsstil nicht machbar. Diese Programme zeichnen Fenster- und
-  Seitenhintergründe selbst in den Farben des Kirigami-Plattform-Themes
-  (qqc2-desktop-style) und erzeugen ihre Fenster ohne Alphakanal, bevor ein
-  Qt-Widgets-Stil Einfluss nehmen kann. Glas ginge nur mit einem eigenen
-  Qt-Quick-Controls- und Kirigami-Stil (Fork von qqc2-desktop-style), der beim
-  Laden einen Alphakanal anfordert, transparente Hintergrundfarben liefert und
-  Blur anfordert. Das ist ein eigenes, größeres Teilprojekt.
+* **QML/Kirigami-Programme (z. B. Discover):** Ursprünglich nicht machbar, weil
+  diese Programme ihre Hintergründe selbst in den Farben des Kirigami-Plattform-
+  Plugins zeichnen und ihre Fenster ohne Alphakanal anlegen.
+
+## Ergänzung – Glas für Qt-Quick-/Kirigami-Programme
+
+`kde/kirigami/`: ein Kirigami-Plattform-Plugin `org.kde.desktop.deepinglass`,
+abgeleitet vom Plugin aus qqc2-desktop-style (LGPL). Statt eines kompletten
+Forks von qqc2-desktop-style genügt dieses Plugin, weil die Bedienelemente
+weiterhin von qqc2-desktop-style über den Qt-Widgets-Stil „Deepin Glass“
+gezeichnet werden; nur die Hintergrundfarben und die Fenster müssen sich ändern.
+
+* Hintergründe der Farbgruppen Window, View und Header bekommen Transparenz
+  (`[QtQuick]` in `deepinglassrc`). Dialoge, Sheets und Menüs innerhalb eines
+  Fensters bleiben undurchsichtig, weil hinter ihnen nur der Fensterinhalt liegt.
+* Kirigami-Fenster bekommen einen Alphakanal, bevor das native Fenster entsteht,
+  und KWin-Blur.
+* Aktivierung ohne Umgebungsvariable: Kirigami lädt das erste Plugin, dessen
+  Dateiname den Stilnamen „org.kde.desktop“ enthält; Verzeichniseinträge sind nach
+  Namen sortiert, daher wird dieses Plugin vor dem Original gefunden. Ein Weg über
+  `QT_QUICK_CONTROLS_STYLE` wurde verworfen, weil er auch reine
+  QGuiApplication-Programme trifft, für die qqc2-desktop-style nicht gedacht ist.
+* Ausgenommen: plasmashell, krunner, KWin, Splash, Sperrbildschirm, SDDM sowie
+  QML in Qt-Widgets-Fenstern (Systemeinstellungen).
+* Getestet mit Discover und Kirigami Gallery (hell und dunkel) in der KWin-Sitzung.
+* Wartung: Ändert qqc2-desktop-style sein Plugin, müssen die kopierten Dateien
+  nachgezogen werden (`kde/kirigami/README.md`).
+
+## Ergänzung – Standardkonfiguration
+
+`~/.config/deepinglassrc` wird beim ersten Start von Dekoration, Stil oder
+Kirigami-Plugin mit allen Standardwerten und Kommentaren angelegt (Vorlage
+`kde/common/deepinglassrc.default`), außerdem von `./install.sh`.
 
 ## Phase 8 – Paketierung und Tests
 

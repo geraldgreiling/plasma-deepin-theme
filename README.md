@@ -21,6 +21,7 @@ endorsed by Deepin / UnionTech. "Deepin" is used only to describe the look.
 |---|---|---|
 | Window decoration (C++, KDecoration3, blur, rounded corners) | **Deepin Glass** | AUR: `plasma-deepin-glass` / `plasma-deepin-glass-git` |
 | Application style (C++, Qt 6, based on Breeze, translucent + blurred windows) | **Deepin Glass** | AUR (same package) |
+| Glass for Qt Quick/Kirigami apps (C++, Kirigami platform plugin) | Deepin Glass | AUR (same package) |
 | Colour schemes | Deepin Light, Deepin Dark | KDE Store |
 | Plasma style (panel/dock, popups, tooltips; follows the colour scheme) | Deepin | KDE Store |
 | Global themes (defaults, centred floating dock, splash screen) | Deepin Light, Deepin Dark | KDE Store |
@@ -67,42 +68,37 @@ GTK: System Settings → Application Style → *Configure GNOME/GTK Application 
 
 ## Settings of the glass effect
 
-Decoration and application style read `~/.config/deepinglassrc`:
-
-```ini
-[Decoration]
-TitleBarHeight=40
-CornerRadius=12
-ActiveOpacity=0.72
-InactiveOpacity=0.58
-Blur=true
-ShadowSize=36
-ShadowStrength=0.38
-Outline=true
-CenterTitle=true
-
-[Style]
-Translucent=true
-WindowOpacity=0.78
-MenuOpacity=0.82
-SidebarOpacity=0.0
-ViewOpacity=0.55
-ExcludedApplications=myglapp,anotherapp
-```
+Decoration, application style and the Kirigami plugin read
+`~/.config/deepinglassrc`. The file is created with all defaults and comments
+the first time one of them runs (or by `./install.sh`); the template is
+[`kde/common/deepinglassrc.default`](kde/common/deepinglassrc.default).
+Sections: `[Decoration]`, `[Style]` (Qt Widgets applications) and `[QtQuick]`
+(Kirigami applications).
 
 Apply decoration changes with `qdbus6 org.kde.KWin /KWin reconfigure`;
-applications pick up style changes on restart. Blur has to be enabled in
+applications pick up changes on restart. Blur has to be enabled in
 System Settings → Desktop Effects → *Blur*.
+
+## How the glass reaches Qt Quick applications
+
+Kirigami applications (Discover, System Monitor, Elisa, …) take their colours
+from a Kirigami platform plugin, normally `org.kde.desktop` from
+qqc2-desktop-style. This project installs `org.kde.desktop.deepinglass`, a copy
+of that plugin with translucent Window/View/Header backgrounds. Kirigami loads
+the first plugin whose file name contains the style name, and directory entries
+are sorted by name, so this plugin is used instead of the original. It also
+gives Kirigami windows an alpha channel and asks KWin to blur behind them.
+Dialogs, sheets and menus inside a window stay opaque. `[QtQuick]
+Translucent=false` turns it back into the unchanged original; uninstalling the
+package restores the original plugin.
 
 ## Limitations
 
 * **Glass in applications** works for Qt Widgets applications (Dolphin, Kate,
-  Konsole, …), including their tool bars and content views (`ViewOpacity`).
-  QML/Kirigami applications (Discover, System Settings, Elisa, …) stay opaque
-  except for the title bar: they do not use the Qt Widgets style for their
-  window and page backgrounds, and their windows are created without an alpha
-  channel. Changing that would need a separate Qt Quick Controls/Kirigami style
-  (a fork of qqc2-desktop-style).
+  Konsole, …) and Kirigami applications (Discover, …). QML embedded in Qt
+  Widgets windows (System Settings) and GTK applications stay opaque.
+* The Kirigami plugin is a copy of qqc2-desktop-style's plugin
+  (`kde/kirigami/README.md`); new upstream features need to be merged by hand.
   GTK applications cannot request blur from KWin, so the GTK themes are opaque.
 * Applications that render with OpenGL/video overlays are kept opaque by an
   exclusion list (see `kde/style/deepinglassstyle.cpp`, extendable via
@@ -121,7 +117,8 @@ System Settings → Desktop Effects → *Blur*.
 ```
 kde/decoration/     KDecoration3 plugin "Deepin Glass"
 kde/style/          Qt 6 style plugin "DeepinGlass" (QProxyStyle on top of Breeze)
-kde/common/         shared settings (deepinglassrc) and shadow renderer
+kde/kirigami/       Kirigami platform plugin (glass for Qt Quick applications)
+kde/common/         shared settings (deepinglassrc + default template) and shadow renderer
 color-schemes/      Deepin Light / Dark            (generated: tools/gen-colors.py)
 plasma/desktoptheme Plasma style "plasma-deepin"   (generated: tools/gen-plasma-style.py)
 plasma/look-and-feel global themes, layout script, splash screen
@@ -153,5 +150,7 @@ GPL-3.0-or-later (see `LICENSE`).
   stored in this repository but fetched at a pinned commit.
 * The GTK themes are generated from the stylesheets built into GTK
   (LGPL-2.1-or-later, see `LICENSES/`).
+* `kde/kirigami` contains code from qqc2-desktop-style (LGPL-2.0-or-later /
+  LGPL-2.1-or-later).
 * The structure of the window decoration follows the Breeze decoration,
   the translucency technique of the style follows Kvantum (both GPL).
