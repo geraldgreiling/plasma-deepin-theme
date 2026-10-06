@@ -1,0 +1,27 @@
+# Maintainer: Gerald Greiling <gerald.greiling@gmail.com>
+# Deepin Glass: window decoration (KDecoration3) and Qt 6 application style for Plasma 6.
+pkgname=plasma-deepin-glass
+_repo=plasma-deepin-theme
+pkgver=1.0.0
+pkgrel=1
+pkgdesc="Frosted glass window decoration and Qt application style in the Deepin look for KDE Plasma 6"
+arch=('x86_64' 'aarch64')
+url="https://github.com/geraldgreiling/plasma-deepin-theme"
+license=('GPL-3.0-or-later')
+depends=('kdecoration' 'breeze' 'kconfig' 'kcoreaddons' 'kwindowsystem' 'qt6-base' 'gcc-libs' 'glibc')
+makedepends=('cmake' 'extra-cmake-modules')
+source=("${pkgname}-${pkgver}.tar.gz::${url}/archive/refs/tags/v${pkgver}.tar.gz")
+sha256sums=('SKIP') # replaced by tools/update-aur-checksums.sh after tagging
+
+build() {
+    cmake -B build -S "${_repo}-${pkgver}" \
+        -DCMAKE_BUILD_TYPE=None \
+        -DCMAKE_INSTALL_PREFIX=/usr \
+        -DBUILD_TESTING=OFF \
+        -Wno-dev
+    cmake --build build
+}
+
+package() {
+    DESTDIR="${pkgdir}" cmake --install build
+}

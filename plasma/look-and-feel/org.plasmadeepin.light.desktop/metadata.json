@@ -1,0 +1,21 @@
+{
+    "KPackageStructure": "Plasma/LookAndFeel",
+    "KPlugin": {
+        "Authors": [
+            {
+                "Name": "plasma-deepin-theme contributors"
+            }
+        ],
+        "Category": "",
+        "Description": "Deepin look for Plasma 6: frosted glass windows and dock, Deepin colours, bloom icons and cursors",
+        "Description[de]": "Deepin-Look für Plasma 6: Fenster und Dock in Milchglas-Optik, Deepin-Farben, Bloom-Icons und -Cursor",
+        "Id": "org.plasmadeepin.light.desktop",
+        "License": "GPL-3.0-or-later",
+        "Name": "Deepin Light",
+        "Name[de]": "Deepin Hell",
+        "Version": "1.0.0",
+        "Website": "https://github.com/geraldgreiling/plasma-deepin-theme"
+    },
+    "Keywords": "Desktop;Workspace;Appearance;Look and Feel;Deepin;",
+    "X-Plasma-APIVersion": "2"
+}

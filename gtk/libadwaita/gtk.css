@@ -1,0 +1,56 @@
+/*
+ * Deepin Glass for libadwaita applications.
+ * Copy to ~/.config/gtk-4.0/gtk.css (tools/install-gtk-libadwaita.sh does that).
+ * libadwaita ignores GTK themes but loads this user stylesheet.
+ * SPDX-FileCopyrightText: 2026 plasma-deepin-theme contributors
+ * SPDX-License-Identifier: GPL-3.0-or-later
+ */
+:root {
+  --accent-bg-color: #0081ff;
+  --accent-fg-color: #ffffff;
+  --accent-color: #0081ff;
+  --window-bg-color: #f8f8f8;
+  --window-fg-color: #252525;
+  --view-bg-color: #ffffff;
+  --view-fg-color: #252525;
+  --headerbar-bg-color: #f2f2f2;
+  --headerbar-fg-color: #252525;
+  --headerbar-backdrop-color: #f8f8f8;
+  --sidebar-bg-color: #f2f2f2;
+  --secondary-sidebar-bg-color: #f5f5f5;
+  --popover-bg-color: #ffffff;
+  --dialog-bg-color: #f8f8f8;
+  --card-bg-color: #ffffff;
+  --destructive-bg-color: #ff5736;
+  --error-bg-color: #ff5736;
+  --window-radius: 12px;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --accent-bg-color: #0059d2;
+    --accent-fg-color: #f1f6ff;
+    --accent-color: #3d8bff;
+    --window-bg-color: #252525;
+    --window-fg-color: #dedede;
+    --view-bg-color: #282828;
+    --view-fg-color: #dedede;
+    --headerbar-bg-color: #1f1f1f;
+    --headerbar-fg-color: #dedede;
+    --headerbar-backdrop-color: #252525;
+    --sidebar-bg-color: #1f1f1f;
+    --secondary-sidebar-bg-color: #222222;
+    --popover-bg-color: #2d2d2d;
+    --dialog-bg-color: #252525;
+    --card-bg-color: #2c2c2c;
+    --destructive-bg-color: #e43f2e;
+    --error-bg-color: #e43f2e;
+  }
+}
+/* older libadwaita versions (< 1.6) use named colours */
+@define-color accent_bg_color #0081ff;
+@define-color accent_color #0081ff;
+@define-color accent_fg_color #ffffff;
+
+button, entry, spinbutton, dropdown > button, combobox > box > button { border-radius: 8px; }
+popover > contents { border-radius: 12px; }
+windowcontrols > button.close:hover > image { background-color: #ff5736; color: #ffffff; }

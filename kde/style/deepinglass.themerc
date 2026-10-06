@@ -1,0 +1,8 @@
+[Misc]
+Name=Deepin Glass
+Name[de]=Deepin Glass
+Comment=Frosted glass application style in the style of the Deepin desktop (based on Breeze)
+Comment[de]=Anwendungsstil in Milchglas-Optik im Stil des Deepin-Desktops (basiert auf Breeze)
+
+[KDE]
+WidgetStyle=DeepinGlass

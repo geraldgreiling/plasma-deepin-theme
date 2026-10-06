@@ -1,0 +1,21 @@
+[kdeglobals][KDE]
+widgetStyle=DeepinGlass
+
+[kdeglobals][General]
+ColorScheme=DeepinDark
+
+[kdeglobals][Icons]
+Theme=Deepin-Bloom-Dark
+
+[plasmarc][Theme]
+name=plasma-deepin
+
+[kcminputrc][Mouse]
+cursorTheme=Deepin-Bloom-Cursors-Dark
+
+[kwinrc][org.kde.kdecoration2]
+library=org.plasmadeepin.glass
+theme=Deepin Glass
+
+[ksplashrc][KSplash]
+Theme=org.plasmadeepin.dark.desktop

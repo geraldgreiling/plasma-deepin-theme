@@ -1,0 +1,13 @@
+# SPDX-FileCopyrightText: 2026 plasma-deepin-theme contributors
+# SPDX-License-Identifier: GPL-3.0-or-later
+
+[AdaptiveTransparency]
+enabled=true
+
+# Background contrast behind blurred panels and popups (KWin "Background contrast" effect).
+# Values are a starting point; Deepin itself tints the blur slightly towards the theme colour.
+[ContrastEffect]
+enabled=true
+contrast=0.35
+intensity=1.15
+saturation=1.6

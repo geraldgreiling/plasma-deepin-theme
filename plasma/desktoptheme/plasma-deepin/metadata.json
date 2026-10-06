@@ -1,0 +1,19 @@
+{
+    "KPlugin": {
+        "Authors": [
+            {
+                "Name": "plasma-deepin-theme contributors"
+            }
+        ],
+        "Category": "",
+        "Description": "Frosted glass Plasma style inspired by the Deepin desktop. Follows the active color scheme.",
+        "Description[de]": "Plasma-Stil in Milchglas-Optik nach dem Vorbild des Deepin-Desktops. Folgt dem aktiven Farbschema.",
+        "EnabledByDefault": true,
+        "Id": "plasma-deepin",
+        "License": "GPL-3.0-or-later",
+        "Name": "Deepin",
+        "Version": "1.0.0",
+        "Website": "https://github.com/geraldgreiling/plasma-deepin-theme"
+    },
+    "X-Plasma-API": "5.0"
+}

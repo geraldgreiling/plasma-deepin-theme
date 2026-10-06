@@ -1,0 +1,15 @@
+{
+    "KPlugin": {
+        "Description": "Frosted glass window decoration in the style of the Deepin desktop",
+        "Description[de]": "Fensterdekoration in Milchglas-Optik im Stil des Deepin-Desktops",
+        "EnabledByDefault": true,
+        "Id": "org.plasmadeepin.glass",
+        "License": "GPL-3.0-or-later",
+        "Name": "Deepin Glass",
+        "Name[de]": "Deepin Glass"
+    },
+    "org.kde.kdecoration3": {
+        "blur": true,
+        "recommendedBorderSize": "None"
+    }
+}

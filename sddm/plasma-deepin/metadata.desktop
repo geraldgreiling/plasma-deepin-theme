@@ -1,0 +1,14 @@
+[SddmGreeterTheme]
+Name=Deepin (Plasma)
+Description=Login screen in the style of the Deepin desktop, matching the plasma-deepin-theme
+Author=plasma-deepin-theme contributors
+License=GPL-3.0-or-later
+Type=sddm-theme
+Version=1.0.0
+Website=https://github.com/geraldgreiling/plasma-deepin-theme
+Screenshot=preview.png
+MainScript=Main.qml
+ConfigFile=theme.conf
+Theme-Id=plasma-deepin
+Theme-API=2.0
+QtVersion=6

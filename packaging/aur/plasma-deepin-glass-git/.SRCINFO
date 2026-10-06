@@ -1,0 +1,25 @@
+pkgbase = plasma-deepin-glass-git
+	pkgdesc = Frosted glass window decoration and Qt application style in the Deepin look for KDE Plasma 6 (git)
+	pkgver = r1.0000000
+	pkgrel = 1
+	url = https://github.com/geraldgreiling/plasma-deepin-theme
+	arch = x86_64
+	arch = aarch64
+	license = GPL-3.0-or-later
+	makedepends = git
+	makedepends = cmake
+	makedepends = extra-cmake-modules
+	depends = kdecoration
+	depends = breeze
+	depends = kconfig
+	depends = kcoreaddons
+	depends = kwindowsystem
+	depends = qt6-base
+	depends = gcc-libs
+	depends = glibc
+	provides = plasma-deepin-glass
+	conflicts = plasma-deepin-glass
+	source = git+https://github.com/geraldgreiling/plasma-deepin-theme.git
+	sha256sums = SKIP
+
+pkgname = plasma-deepin-glass-git

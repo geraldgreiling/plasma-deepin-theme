@@ -1,0 +1,118 @@
+# Umsetzung des Plans
+
+Dieses Dokument ordnet die Phasen des Umsetzungsplans den Dateien im Repository zu
+und hält fest, wo die Umsetzung vom Plan abweicht und warum.
+
+Grundlage: Plasma 6. Kompiliert und getestet wurde gegen Plasma 6.6.4 bzw. 6.6.6,
+KF 6.24 und Qt 6.10 aus Ubuntu 26.04, weil im Build-Container keine Arch-Pakete
+erreichbar waren. Die KDecoration3-Header sind zwischen 6.6 und dem aktuellen
+Entwicklungsstand fast identisch (geprüft per Diff). Ob es gegen das Plasma 6.7
+von CachyOS baut, prüft der GitHub-Workflow `.github/workflows/build.yml` in
+einem Arch-Container.
+
+## Phase 0 – Referenzwerte und Lizenz
+
+* Die Werte stammen aus dem DTK-Quellcode (`dtkgui/src/kernel/dguiapplicationhelper.cpp`,
+  `dtkwidget/src/widgets/dstyle.cpp`, `dblureffectwidget.cpp`):
+  * Akzentfarbe hell `#0081ff`, dunkel `#0059d2` (bzw. Highlight `#024CCA`)
+  * Fenster `#f8f8f8` / `#252525`, Basis `#ffffff` / `#282828`, Button `#e5e5e5` / `#444444`
+  * Text 85 % bzw. 60 % Deckkraft auf dem Hintergrund, hier vorab verrechnet
+  * Steuerelement-Radius 8 px (`PM_FrameRadius`), schwebende Elemente 18 px,
+    Fokusrahmen 2 px
+  * Milchglas-Maske: Alpha 102/255 mit Blur, 204/255 ohne
+* Lizenz: GPL-3.0-or-later für das ganze Projekt. Icons und Cursor werden aus
+  `linuxdeepin/deepin-icon-theme` (GPL-3.0-or-later) gebaut und nicht ins Repo kopiert.
+* Hell und dunkel sind von Anfang an umgesetzt.
+
+## Phase 1 – Farbschema
+
+`color-schemes/DeepinLight.colors`, `DeepinDark.colors`, erzeugt von
+`tools/gen-colors.py`. Werte, die nicht aus DTK stammen (z. B. Positiv-Grün,
+Neutral-Orange), sind dort als „own“ markiert.
+
+## Phase 2 – Plasma-Style
+
+`plasma/desktoptheme/plasma-deepin/`, erzeugt von `tools/gen-plasma-style.py`.
+Panel (Dock, 16 px), Dialoge (12 px), Tooltips (8 px), Widgets (18 px), Task-Manager-
+und Listeneinträge. Jede Fläche hat Blur-Masken, Schatten und die Varianten
+`translucent/` (mit Blur), Basis und `opaque/`. Die SVGs nutzen ColorScheme-Klassen,
+deshalb gibt es nur einen Plasma-Style für hell und dunkel. Kontrast-Einstellungen
+für den Blur stehen in `plasmarc`.
+
+## Phase 3 – Fensterdekoration (Abweichung vom Plan)
+
+Der Plan empfahl Aurorae. Umgesetzt ist eine native KDecoration3-Dekoration
+(`kde/decoration/`), weil die Projektbeschreibung Milchglas und eine Verteilung
+über AUR verlangt: Die Titelleiste ist transparent, fordert über `setBlurRegion`
+und `"blur": true` KWin-Blur an und zeigt deshalb den Hintergrund weichgezeichnet.
+Zusätzlich: abgerundete Fensterecken (auch unten über `setBorderRadius`),
+zentrierter Titel, flache Buttons mit abgerundetem Hover und roter Schließen-Fläche,
+großer weicher Schatten, Einstellungen über `~/.config/deepinglassrc`.
+
+## Phase 4 – Icons und Cursor (teilweise Abweichung)
+
+* `tools/fetch-deepin-icon-theme.sh` holt deepin-icon-theme in einem festen Commit,
+  `tools/build-icon-themes.py` baut daraus „Deepin Bloom“ und „Deepin Bloom Dark“
+  (`Inherits=breeze` bzw. `breeze-dark`). Das DCI-Problem aus dem Plan betrifft
+  das Theme „bloom“ nicht: Es liegt als SVG vor.
+* Ergänzt werden 568 Symlinks für KDE-Namen (z. B. `org.kde.dolphin`,
+  `start-here-kde`) und fehlende Verzeichniseinträge in `index.theme`.
+* Cursor: nur XCursor (24–256 px), keine SVG-Cursor. Grund: Die SVG-Quelle in
+  `cursors-src/` ist älter als die ausgelieferten XCursor (andere Form, andere
+  Hotspots). SVG-Cursor daraus würden nicht zu den XCursorn passen.
+
+## Phase 5 – Qt- und GTK-Stil (Abweichung vom Plan)
+
+* Qt: statt Kvantum ein nativer Stil „Deepin Glass“ (`kde/style/`), ein
+  `QProxyStyle` über Breeze. Hauptfenster und Dialoge werden transparent und
+  bekommen KWin-Blur, Menüs ebenso. Buttons, Eingabefelder, Combo- und Spinboxen,
+  Check-/Radioboxen, Scroll- und Fortschrittsbalken werden im DTK-Stil gezeichnet.
+  Die Transparenz wird in `styleHint()` gesetzt, also bevor Qt das native Fenster
+  erzeugt; in `polish()` wäre es dafür zu spät (Qt 6 erzeugt das Fenster vorher).
+* GTK 3 und GTK 4: `gtk/Deepin-Glass`, `gtk/Deepin-Glass-Dark`, erzeugt von
+  `tools/gen-gtk-themes.py` aus den in GTK eingebauten Stylesheets, umgefärbt
+  auf die DTK-Palette und um Deepin-Formen ergänzt.
+* libadwaita: `gtk/libadwaita/gtk.css` für `~/.config/gtk-4.0/gtk.css`
+  (`./install.sh --libadwaita`), mit hell/dunkel über `prefers-color-scheme`.
+
+## Phase 6 – Look-and-Feel-Paket (Abweichung beim Sperrbildschirm)
+
+`plasma/look-and-feel/org.plasmadeepin.light.desktop` und `…dark.desktop`:
+`defaults`, Layout-Skript (schwebendes, zentriertes Dock mit Kickoff,
+Icon-Taskleiste, Systemabschnitt, Uhr), Splash-Screen, Vorschaubilder.
+
+**Kein eigener Sperrbildschirm:** In Plasma 6 lädt `kscreenlocker` den
+Sperrbildschirm aus dem Shell-Paket (`org.kde.plasma.desktop`,
+`lockscreen/LockScreen.qml`), nicht mehr aus dem Look-and-Feel-Paket
+(geprüft in libplasma `shellpackage.cpp`, kscreenlocker `greeterapp.cpp` und
+plasma-workspace Branch `Plasma/6.7`). Ein eigener Sperrbildschirm hieße, die
+Desktop-Shell zu ersetzen. Der Standard-Sperrbildschirm übernimmt aber
+Plasma-Style und Farbschema dieses Themes.
+
+## Phase 7 – SDDM
+
+`sddm/plasma-deepin/` mit `QtVersion=6`, eigenes `Main.qml` ohne private APIs:
+weichgezeichneter Hintergrund (`theme.conf: background=`), Uhr, Avatar,
+Passwortfeld in Milchglas-Optik, Sitzungsauswahl und Energie-Buttons. Getestet mit
+`sddm-greeter-qt6 --test-mode`.
+
+## Phase 8 – Paketierung und Tests
+
+* AUR: `packaging/aur/plasma-deepin-glass-git` (sofort nutzbar) und
+  `packaging/aur/plasma-deepin-glass` (Release, Prüfsumme nach dem Tag).
+  Das AUR-Paket enthält nur Dekoration und Anwendungsstil, wie gewünscht.
+* KDE Store: `tools/make-store-packages.sh` erzeugt je Komponente ein Archiv in `dist/`.
+* Tests in diesem Projekt: Kompilieren ohne Warnungen, Widget-Galerie, KWin-Sitzung
+  mit Dekoration, Anwendungsstil und plasmashell samt Dock-Layout (in Xvfb),
+  GTK-3/4-Widget-Factory, libadwaita-Demo, SDDM-Greeter im Testmodus,
+  `kpackagetool6` für die Pakete. Was dort nicht prüfbar war: Blur, Schatten und
+  runde untere Ecken (KWin lief ohne GPU mit QPainter), X11-Sitzung, gebrochene
+  Skalierung. Das sollte auf echter Hardware nachgetestet werden.
+
+## Offene Punkte
+
+* Prüfen auf CachyOS mit echter GPU: Blur-Stärke, Deckkraft (`deepinglassrc`),
+  Wayland und X11, 125 % und 150 % Skalierung.
+* KDE-Store-Einträge anlegen und die Archive aus `dist/` hochladen.
+* AUR-Pakete veröffentlichen (`.SRCINFO` liegt bei; für das Release-Paket nach dem
+  Tag die Prüfsumme eintragen).

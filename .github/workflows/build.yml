@@ -1,0 +1,32 @@
+# SPDX-FileCopyrightText: 2026 plasma-deepin-theme contributors
+# SPDX-License-Identifier: GPL-3.0-or-later
+name: build
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  arch:
+    # Arch Linux follows the current Plasma release, like CachyOS
+    runs-on: ubuntu-latest
+    container: archlinux:latest
+    steps:
+      - name: Install dependencies
+        run: |
+          pacman -Syu --noconfirm --needed base-devel git cmake extra-cmake-modules \
+            kdecoration breeze kconfig kcoreaddons kwindowsystem qt6-base python
+      - uses: actions/checkout@v4
+      - name: Build decoration and application style
+        run: |
+          cmake -B build -S . -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=/usr -DINSTALL_THEME_DATA=ON
+          cmake --build build
+          DESTDIR="$PWD/pkg" cmake --install build
+          find pkg -type f | sort
+      - name: Generated files are up to date
+        run: |
+          python tools/gen-colors.py
+          python tools/gen-plasma-style.py
+          git config --global --add safe.directory "$GITHUB_WORKSPACE"
+          git diff --exit-code
