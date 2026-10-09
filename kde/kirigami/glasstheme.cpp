@@ -254,6 +254,10 @@ void GlassTheme::syncWindow()
         } else if (!qw) {
             m_sgConnection = QMetaObject::Connection();
         }
+    } else if (auto qw = qobject_cast<QQuickWindow *>(parent())) {
+        // Deepin Glass: the theme attached to the window itself provides the window
+        // colour, which follows the title bar's active/inactive opacity
+        window = qw;
     }
     m_window = window;
     if (auto qw = qobject_cast<QQuickWindow *>(window)) {
@@ -302,6 +306,8 @@ void GlassTheme::syncColors()
         } else if (m_window && !m_window->isActive() && m_window->isExposed()) {
             group = QPalette::Inactive;
         }
+    } else if (m_window && m_window == parent() && !m_window->isActive() && m_window->isExposed()) {
+        group = QPalette::Inactive; // Deepin Glass, see syncWindow()
     }
 
     const auto colors = s_style->loadColors(colorSet(), group);
