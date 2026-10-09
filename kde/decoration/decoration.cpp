@@ -122,6 +122,7 @@ bool Decoration::init()
         if (m_activeAnimation->state() != QAbstractAnimation::Running) {
             m_activeAnimation->start();
         }
+        update(); // background at once, see titleBarColor()
         updateShadow();
         recalculateBorders();
     });
@@ -332,12 +333,10 @@ void Decoration::updateShadow()
 
 QColor Decoration::titleBarColor() const
 {
-    const QColor active = window()->color(ColorGroup::Active, ColorRole::TitleBar);
-    const QColor inactive = window()->color(ColorGroup::Inactive, ColorRole::TitleBar);
-    const qreal t = m_activeProgress;
-    return QColor::fromRgbF(inactive.redF() + (active.redF() - inactive.redF()) * t,
-                            inactive.greenF() + (active.greenF() - inactive.greenF()) * t,
-                            inactive.blueF() + (active.blueF() - inactive.blueF()) * t);
+    // The title bar background switches at once, like the application below it
+    // (style and Kirigami plugin repaint with the new opacity on activation); a fade
+    // here would let the title bar lag behind the rest of the window.
+    return window()->color(window()->isActive() ? ColorGroup::Active : ColorGroup::Inactive, ColorRole::TitleBar);
 }
 
 QColor Decoration::foregroundColor() const
@@ -360,7 +359,7 @@ qreal Decoration::titleBarOpacity() const
     if (!settings()->isAlphaChannelSupported()) {
         return 1.0;
     }
-    return m_config.inactiveOpacity + (m_config.activeOpacity - m_config.inactiveOpacity) * m_activeProgress;
+    return window()->isActive() ? m_config.activeOpacity : m_config.inactiveOpacity; // see titleBarColor()
 }
 
 void Decoration::paint(QPainter *painter, const QRectF &repaintArea)

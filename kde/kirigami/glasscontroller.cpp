@@ -245,7 +245,10 @@ void GlassController::applyClearColor(QQuickWindow *window)
         if (rgb != pal.color(QPalette::Window).rgb() && rgb != pal.color(QPalette::Base).rgb()) {
             return;
         }
-        color.setAlphaF(windowOpacity(window->isActive()));
+        // the window colour, like the title bar (Base is lighter: Spectacle's viewer)
+        const bool active = window->isActive();
+        color = pal.color(active ? QPalette::Active : QPalette::Inactive, QPalette::Window);
+        color.setAlphaF(windowOpacity(active));
     }
     // The colour is straight alpha. With OpenGL/Vulkan Qt Quick clears the
     // premultiplied swap chain with exactly this value, so e.g. (0.97, 0.97, 0.97, 0.72)
