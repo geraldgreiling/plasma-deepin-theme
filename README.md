@@ -75,6 +75,16 @@ the first time one of them runs (or by `./install.sh`); the template is
 Sections: `[Decoration]`, `[Style]` (Qt Widgets applications) and `[QtQuick]`
 (Kirigami applications).
 
+By default every window is **one uniform glass surface** with the opacity of
+the title bar: `WindowOpacity=auto` follows `[Decoration] ActiveOpacity` /
+`InactiveOpacity`, while side bars, views, pages and headers add nothing
+(`SidebarOpacity`, `ViewOpacity`, `PageOpacity`, `HeaderOpacity` = 0). Raise
+those values to give individual areas an extra layer. Menus, dialogs and
+sheets stay mostly opaque for readability.
+
+A `deepinglassrc` from an older version (`ConfigVersion` < 2) is replaced by
+the new template once; the old file is kept as `deepinglassrc.old`.
+
 Apply decoration changes with `qdbus6 org.kde.KWin /KWin reconfigure`;
 applications pick up changes on restart. Blur has to be enabled in
 System Settings → Desktop Effects → *Blur*.
@@ -91,6 +101,14 @@ gives Kirigami windows an alpha channel and asks KWin to blur behind them.
 Dialogs, sheets and menus inside a window stay opaque. `[QtQuick]
 Translucent=false` turns it back into the unchanged original; uninstalling the
 package restores the original plugin.
+
+## Troubleshooting
+
+`tools/check-glass.sh plasma-discover` lists the installed plugins, the
+settings, whether the application is still running (single-instance
+applications like Discover only reactivate the old window) and which Kirigami
+plugin it loads. `DEEPINGLASS_DEBUG=1` makes the Kirigami plugin log its
+window setup.
 
 ## Limitations
 

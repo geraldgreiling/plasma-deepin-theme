@@ -26,9 +26,9 @@ LIB_DIRS = ['/usr/lib', '/usr/lib64', '/usr/lib/x86_64-linux-gnu']
 
 # DTK palette (linuxdeepin/dtkgui, dguiapplicationhelper.cpp), see tools/gen-colors.py
 PALETTE = {
-    'light': dict(bg='#f8f8f8', fg='#252525', base='#ffffff', button='#e5e5e5', header='#f2f2f2',
+    'light': dict(bg='#f8f8f8', fg='#252525', base='#ffffff', button='#e5e5e5', header='#f8f8f8',
                   accent='#0081ff', accent_fg='#ffffff', warning='#ff5736', dim='#636363'),
-    'dark': dict(bg='#252525', fg='#dedede', base='#282828', button='#444444', header='#1f1f1f',
+    'dark': dict(bg='#252525', fg='#dedede', base='#282828', button='#444444', header='#252525',
                  accent='#0059d2', accent_fg='#f1f6ff', warning='#e43f2e', dim='#a8a8a8'),
 }
 
@@ -266,10 +266,10 @@ LIBADWAITA = """/*
   --window-fg-color: #252525;
   --view-bg-color: #ffffff;
   --view-fg-color: #252525;
-  --headerbar-bg-color: #f2f2f2;
+  --headerbar-bg-color: #f8f8f8;
   --headerbar-fg-color: #252525;
   --headerbar-backdrop-color: #f8f8f8;
-  --sidebar-bg-color: #f2f2f2;
+  --sidebar-bg-color: #f8f8f8;
   --secondary-sidebar-bg-color: #f5f5f5;
   --popover-bg-color: #ffffff;
   --dialog-bg-color: #f8f8f8;
@@ -287,10 +287,10 @@ LIBADWAITA = """/*
     --window-fg-color: #dedede;
     --view-bg-color: #282828;
     --view-fg-color: #dedede;
-    --headerbar-bg-color: #1f1f1f;
+    --headerbar-bg-color: #252525;
     --headerbar-fg-color: #dedede;
     --headerbar-backdrop-color: #252525;
-    --sidebar-bg-color: #1f1f1f;
+    --sidebar-bg-color: #252525;
     --secondary-sidebar-bg-color: #222222;
     --popover-bg-color: #2d2d2d;
     --dialog-bg-color: #252525;

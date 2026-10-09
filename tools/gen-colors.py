@@ -35,7 +35,7 @@ LIGHT = dict(
     view_alt=blend('#000000', 0.03, '#ffffff'),  # DTK AlternateBase (3% black)
     button='#e5e5e5',                      # DTK Button
     button_alt='#d9ecff',                  # own (tinted accent)
-    header='#f2f2f2',                      # own (title/tool area, slightly darker than window)
+    header='#f8f8f8',                      # = window: title bar, tool bars and content form one glass surface
     header_inactive='#f8f8f8',
     text=blend('#000000', 0.85, '#f8f8f8'),      # DTK TextTitle 85% black
     text_inactive=blend('#000000', 0.6, '#f8f8f8'),  # DTK TextTips 60% black
@@ -59,7 +59,7 @@ DARK = dict(
     view_alt=blend('#ffffff', 0.05, '#282828'),  # own (5% white)
     button='#444444',                      # DTK Button (dark)
     button_alt='#17345a',                  # own
-    header='#1f1f1f',                      # own
+    header='#252525',                      # = window, see above
     header_inactive='#252525',
     text=blend('#ffffff', 0.85, '#252525'),      # DTK TextTitle 85% white
     text_inactive=blend('#ffffff', 0.6, '#252525'),  # DTK TextTips 60% white

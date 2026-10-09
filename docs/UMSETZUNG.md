@@ -171,3 +171,21 @@ Kirigami-Plugin mit allen Standardwerten und Kommentaren angelegt (Vorlage
 * KDE-Store-Einträge anlegen und die Archive aus `dist/` hochladen.
 * AUR-Pakete veröffentlichen (`.SRCINFO` liegt bei; für das Release-Paket nach dem
   Tag die Prüfsumme eintragen).
+
+## Ergänzung – einheitliche Transparenz
+
+* Standardwerte so gewählt, dass jedes Fenster eine einzige Glasfläche mit der
+  Deckkraft der Titelleiste ist: `WindowOpacity=auto` (folgt
+  `[Decoration] ActiveOpacity`/`InactiveOpacity`), Seitenleisten, Ansichten,
+  Seiten und Kopfzeilen legen standardmäßig keine zusätzliche Schicht darüber
+  (`SidebarOpacity`, `ViewOpacity`, `PageOpacity`, `HeaderOpacity` = 0).
+* Kopfzeilenfarbe des Farbschemas und der GTK-Themes = Fensterfarbe, damit
+  Werkzeugleisten nicht abgesetzt erscheinen; nur eine feine Trennlinie bleibt.
+* Kirigami: Drawer (Seitenleisten, z. B. in Discover) bleiben Glas, schwebende
+  Popups/Dialoge bleiben deckend. Text in Glasfenstern wird ohne
+  Subpixel-Glättung gerendert (keine Farbsäume).
+* `deepinglassrc` mit `ConfigVersion` < 2 wird einmalig durch die neue Vorlage
+  ersetzt, die alte Datei bleibt als `deepinglassrc.old` erhalten.
+* Diagnose: `tools/check-glass.sh <programm>`.
+* Getestet in der verschachtelten KWin-Sitzung (Software-Rendering) mit
+  Dolphin, Discover und Kirigami Gallery.

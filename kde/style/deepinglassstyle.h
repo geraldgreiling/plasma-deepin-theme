@@ -59,6 +59,7 @@ private:
     void updateBlur(QWidget *widget) const;
     void paintWindowBackground(QWidget *window, QPaintEvent *event) const;
     void makeContentTranslucent(QWidget *widget) const;
+    qreal windowOpacity(bool active) const;
     QRect toolsAreaRect(const QWidget *window) const;
 
     void drawButtonPanel(const QStyleOption *option, QPainter *painter, bool isDefault, bool flat) const;

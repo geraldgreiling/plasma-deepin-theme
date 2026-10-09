@@ -248,30 +248,26 @@ void Style::paintWindowBackground(QWidget *window, QPaintEvent *event) const
     const QPalette &pal = window->palette();
     const auto group = window->isActiveWindow() ? QPalette::Active : QPalette::Inactive;
 
-    // Source composition: the areas are written once, never stacked on top of each other,
-    // so the tool bar area is exactly as transparent as the title bar above it.
+    // One glass surface for the whole window with the opacity of the title bar
+    // (the colour schemes use the window colour for the title bar as well).
     painter.setCompositionMode(QPainter::CompositionMode_Source);
-    const QRect tools = toolsAreaRect(window);
-    QRegion rest(window->rect());
-    if (tools.isValid()) {
-        rest -= tools;
-        // Breeze gives tool bars the header palette, the decoration paints the title bar
-        // in the same header colour with the decoration's opacity
-        QColor header = pal.color(group, QPalette::Window);
-        if (auto tb = window->findChild<QToolBar *>(QString(), Qt::FindDirectChildrenOnly)) {
-            header = tb->palette().color(group, QPalette::Window);
-        }
-        const qreal opacity = window->isActiveWindow() ? m_decoConfig.activeOpacity : m_decoConfig.inactiveOpacity;
-        painter.fillRect(tools, withAlpha(header, opacity));
-    }
-    for (const QRect &r : rest) {
-        painter.fillRect(r, withAlpha(pal.color(group, QPalette::Window), m_config.windowOpacity));
-    }
+    painter.fillRect(window->rect(), withAlpha(pal.color(group, QPalette::Window), windowOpacity(window->isActiveWindow())));
     painter.setCompositionMode(QPainter::CompositionMode_SourceOver);
+
+    // a hairline below the tool bars of KDE applications
+    const QRect tools = toolsAreaRect(window);
     if (tools.isValid()) {
-        painter.setPen(withAlpha(pal.color(QPalette::WindowText), 0.08));
+        painter.setPen(withAlpha(pal.color(QPalette::WindowText), 0.06));
         painter.drawLine(tools.bottomLeft(), tools.bottomRight());
     }
+}
+
+qreal Style::windowOpacity(bool active) const
+{
+    if (m_config.windowOpacity >= 0) {
+        return m_config.windowOpacity;
+    }
+    return active ? m_decoConfig.activeOpacity : m_decoConfig.inactiveOpacity;
 }
 
 void Style::makeContentTranslucent(QWidget *widget) const
@@ -307,6 +303,13 @@ bool Style::eventFilter(QObject *object, QEvent *event)
     case QEvent::PaletteChange:
         if (qobject_cast<QAbstractScrollArea *>(widget) && isTranslucentWindow(widget->window())) {
             makeContentTranslucent(widget);
+        }
+        break;
+    case QEvent::WindowActivate:
+    case QEvent::WindowDeactivate:
+        // active and inactive windows have different opacities, like the title bar
+        if (isTranslucentWindow(widget)) {
+            widget->update();
         }
         break;
     case QEvent::Paint:
@@ -469,9 +472,15 @@ void Style::drawInputPanel(const QStyleOption *option, QPainter *painter, const 
     painter->setRenderHint(QPainter::Antialiasing);
     painter->setPen(Qt::NoPen);
     // DTK: line edits are filled with the "ItemBackground"-like tint, no outline
-    QColor bg = mix(pal.color(QPalette::Base), pal.color(QPalette::Text), dark ? 0.06 : 0.04);
-    if (hover && !focus) {
-        bg = mix(bg, pal.color(QPalette::Text), 0.03);
+    QColor bg;
+    if (pal.color(QPalette::Base).alpha() < 255) {
+        // glass: a light tint of the text colour on top of the window surface
+        bg = withAlpha(pal.color(QPalette::Text), (dark ? 0.08 : 0.05) + (hover && !focus ? 0.03 : 0.0));
+    } else {
+        bg = mix(pal.color(QPalette::Base), pal.color(QPalette::Text), dark ? 0.06 : 0.04);
+        if (hover && !focus) {
+            bg = mix(bg, pal.color(QPalette::Text), 0.03);
+        }
     }
     if (!enabled) {
         bg = withAlpha(bg, 0.6);

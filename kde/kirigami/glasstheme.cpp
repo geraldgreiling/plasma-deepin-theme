@@ -65,7 +65,11 @@ public:
         // Given Qt disables all hinting with native rendering when any scaling is used anyway
         // we can use Qt's rendering throughout
         // QTBUG-126577
-        if (qApp->devicePixelRatio() == 1.0) {
+        // Deepin Glass: text on translucent backgrounds must not use sub-pixel
+        // anti-aliasing (coloured fringes), so glass windows use Qt's text rendering
+        if (DeepinGlass::GlassController::self()->isEnabled()) {
+            QQuickWindow::setTextRenderType(QQuickWindow::QtTextRendering);
+        } else if (qApp->devicePixelRatio() == 1.0) {
             QQuickWindow::setTextRenderType(QQuickWindow::NativeTextRendering);
         } else {
             QQuickWindow::setTextRenderType(QQuickWindow::QtTextRendering);
@@ -317,7 +321,7 @@ void GlassTheme::syncColors()
     // background
     // Deepin Glass: translucent backgrounds for the colour sets that make up windows,
     // pages, views and tool bars
-    const qreal glass = DeepinGlass::GlassController::self()->backgroundOpacity(colorSet(), parent());
+    const qreal glass = DeepinGlass::GlassController::self()->backgroundOpacity(colorSet(), parent(), group);
     setBackgroundColor(DeepinGlass::GlassController::withOpacity(colors.scheme.background(KColorScheme::NormalBackground).color(), glass));
     setAlternateBackgroundColor(DeepinGlass::GlassController::withOpacity(colors.scheme.background(KColorScheme::AlternateBackground).color(), glass));
     setHighlightColor(colors.selectionScheme.background(KColorScheme::NormalBackground).color());
@@ -362,7 +366,7 @@ void GlassTheme::syncFrameContrast()
 
     // Deepin Glass
     setBackgroundColor(DeepinGlass::GlassController::withOpacity(colors.scheme.background(KColorScheme::NormalBackground).color(),
-                                                                DeepinGlass::GlassController::self()->backgroundOpacity(colorSet(), parent())));
+                                                                DeepinGlass::GlassController::self()->backgroundOpacity(colorSet(), parent(), group)));
     setFrameContrast(KColorScheme::frameContrast());
 }
 

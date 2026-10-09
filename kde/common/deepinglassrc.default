@@ -2,18 +2,28 @@
 # Shared by the window decoration, the Qt Widgets application style and the
 # Kirigami/Qt Quick integration of plasma-deepin-theme.
 #
+# By default the whole window - title bar, tool bars, side bars and content -
+# is one frosted glass surface with the opacity of the title bar
+# ([Decoration] ActiveOpacity / InactiveOpacity). The layer opacities below are
+# drawn on top of that surface; 0 keeps everything uniform.
+#
 # Apply changes:
 #   window decoration:  qdbus6 org.kde.KWin /KWin reconfigure
 #   applications:       restart the application
 # Opacities go from 0 (fully transparent) to 1 (opaque). Blur must be enabled
 # in System Settings > Desktop Effects.
 
+[General]
+# Version of this file's defaults. Files from older versions are replaced by the
+# current defaults once (the old file is kept as deepinglassrc.old).
+ConfigVersion=2
+
 [Decoration]
 # Height of the title bar in logical pixels
 TitleBarHeight=40
 # Radius of the window corners
 CornerRadius=12
-# Opacity of the title bar of the active / inactive windows
+# Opacity of the whole glass surface of active / inactive windows
 ActiveOpacity=0.72
 InactiveOpacity=0.58
 # Ask KWin to blur behind the title bar
@@ -28,29 +38,29 @@ CenterTitle=true
 
 [Style]
 # Qt Widgets applications (Dolphin, Kate, Konsole, ...)
-# Frosted glass window backgrounds
+# Frosted glass windows
 Translucent=true
-# Opacity of the window background
-WindowOpacity=0.78
+# Opacity of the window background: "auto" = same as the title bar
+WindowOpacity=auto
 # Opacity of popup menus
 MenuOpacity=0.82
-# Opacity of side panels (Dolphin places, ...) on top of the window background
-SidebarOpacity=0.0
-# Opacity of content views (file view, lists, text fields) on top of the window background
-ViewOpacity=0.55
+# Extra layer for side panels (Dolphin places, ...) on top of the window background
+SidebarOpacity=0
+# Extra layer for content views (file view, lists, text fields) on top of the window background
+ViewOpacity=0
 # Executable names that stay opaque, comma separated, e.g. ExcludedApplications=krita,kdenlive
 ExcludedApplications=
 
 [QtQuick]
 # Qt Quick / Kirigami applications (Discover, System Monitor, Elisa, ...)
-# Frosted glass windows, pages and tool bars
+# Frosted glass windows
 Translucent=true
-# Opacity of window and page backgrounds (pages are drawn on top of the window,
-# so the visible opacity is higher than this value)
-WindowOpacity=0.5
-# Opacity of content views (lists, cards) on top of that
-ViewOpacity=0.4
-# Opacity of tool bars and page headers on top of the window background
-HeaderOpacity=0.45
+# Opacity of the window background: "auto" = same as the title bar
+WindowOpacity=auto
+# Extra layers on top of the window background: pages and side bars, content
+# views (lists, cards) and tool bars / page headers
+PageOpacity=0
+ViewOpacity=0
+HeaderOpacity=0
 # Executable names that stay opaque, comma separated
 ExcludedApplications=

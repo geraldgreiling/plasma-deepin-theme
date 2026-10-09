@@ -10,6 +10,7 @@
 
 #include <QColor>
 #include <QObject>
+#include <QPalette>
 #include <QPointer>
 #include <QSet>
 
@@ -36,8 +37,9 @@ public:
     }
 
     /// Opacity factor for the background colours of a colour set (1 = unchanged).
-    /// @p themeParent is the object the Kirigami theme is attached to.
-    qreal backgroundOpacity(Kirigami::Platform::PlatformTheme::ColorSet set, QObject *themeParent) const;
+    /// @p themeParent is the object the Kirigami theme is attached to, @p group the
+    /// colour group (active / inactive window) the colours are computed for.
+    qreal backgroundOpacity(Kirigami::Platform::PlatformTheme::ColorSet set, QObject *themeParent, QPalette::ColorGroup group) const;
 
     /// Called for every window a Kirigami theme gets attached to.
     void prepareWindow(QQuickWindow *window);
@@ -56,8 +58,11 @@ protected:
 private:
     GlassController();
     void updateBlur(QQuickWindow *window);
+    /// Opacity of the window surface: the configured value or the title bar's.
+    qreal windowOpacity(bool active) const;
 
     QuickConfig m_config;
+    DecorationConfig m_decoConfig;
     bool m_enabled = false;
     QSet<QQuickWindow *> m_windows;
 };

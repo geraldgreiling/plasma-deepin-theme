@@ -12,6 +12,7 @@
 #endif
 
 #include <QCoreApplication>
+#include <QDebug>
 #include <QEvent>
 #include <QFileInfo>
 #include <QQuickItem>
@@ -61,6 +62,7 @@ GlassController::GlassController()
     : QObject(QCoreApplication::instance())
 {
     m_config = QuickConfig::load();
+    m_decoConfig = DecorationConfig::load();
     const QString app = QFileInfo(QCoreApplication::applicationFilePath()).fileName();
     m_enabled = m_config.translucent && !s_builtinExcluded.contains(app) && !m_config.excluded.contains(app) && compositingActive();
     if (m_enabled) {
@@ -70,14 +72,18 @@ GlassController::GlassController()
     }
 }
 
-qreal GlassController::backgroundOpacity(Kirigami::Platform::PlatformTheme::ColorSet set, QObject *themeParent) const
+qreal GlassController::backgroundOpacity(Kirigami::Platform::PlatformTheme::ColorSet set, QObject *themeParent, QPalette::ColorGroup group) const
 {
     if (!m_enabled) {
         return 1.0;
     }
     // Dialogs, sheets and menus inside a window float above its content: the blur
     // only covers what is behind the window, so they stay opaque to remain readable.
-    if (themeParent && themeParent->inherits("QQuickPopup")) {
+    // Drawers (Kirigami's side bars) are part of the window and stay glass.
+    auto isFloatingPopup = [](const QObject *popup) {
+        return popup && popup->inherits("QQuickPopup") && !popup->inherits("QQuickDrawer");
+    };
+    if (isFloatingPopup(themeParent)) {
         return 1.0;
     }
     if (auto item = qobject_cast<QQuickItem *>(themeParent); item && item->window()
@@ -88,21 +94,39 @@ qreal GlassController::backgroundOpacity(Kirigami::Platform::PlatformTheme::Colo
     }
     for (auto item = qobject_cast<QQuickItem *>(themeParent); item; item = item->parentItem()) {
         if (item->inherits("QQuickPopupItem")) {
-            return 1.0;
+            // the popup item belongs to its QQuickPopup (QObject parent)
+            if (!item->parent() || isFloatingPopup(item->parent())) {
+                return 1.0;
+            }
         }
     }
     using Kirigami::Platform::PlatformTheme;
+    if (set != PlatformTheme::Window && set != PlatformTheme::View && set != PlatformTheme::Header) {
+        // buttons, selection, tooltips, complementary areas stay opaque
+        return 1.0;
+    }
+    // The window itself is the one glass surface, with the opacity of the title bar.
+    // Everything drawn on top of it (pages, side bars, views, tool bars) only adds
+    // the configured extra layers, by default none, so the window looks uniform.
+    if (qobject_cast<QQuickWindow *>(themeParent)) {
+        return windowOpacity(group != QPalette::Inactive);
+    }
     switch (set) {
-    case PlatformTheme::Window:
-        return m_config.windowOpacity;
     case PlatformTheme::View:
         return m_config.viewOpacity;
     case PlatformTheme::Header:
         return m_config.headerOpacity;
     default:
-        // buttons, selection, tooltips, complementary areas stay opaque
-        return 1.0;
+        return m_config.pageOpacity;
     }
+}
+
+qreal GlassController::windowOpacity(bool active) const
+{
+    if (m_config.windowOpacity >= 0) {
+        return m_config.windowOpacity;
+    }
+    return active ? m_decoConfig.activeOpacity : m_decoConfig.inactiveOpacity;
 }
 
 void GlassController::prepareWindow(QQuickWindow *window)
@@ -114,6 +138,9 @@ void GlassController::prepareWindow(QQuickWindow *window)
     const Qt::WindowType type = window->type();
     if (type != Qt::Window && type != Qt::Dialog) {
         return;
+    }
+    if (qEnvironmentVariableIsSet("DEEPINGLASS_DEBUG")) {
+        qWarning() << "DeepinGlass: prepare" << window << "created already:" << bool(window->handle());
     }
     if (!window->handle()) {
         QSurfaceFormat format = window->requestedFormat();
@@ -138,6 +165,10 @@ void GlassController::updateBlur(QQuickWindow *window)
         return;
     }
     const bool translucent = window->color().alpha() < 255 && window->format().hasAlpha();
+    if (qEnvironmentVariableIsSet("DEEPINGLASS_DEBUG")) {
+        qWarning() << "DeepinGlass: window" << window << "color" << window->color() << "requested alpha"
+                   << window->requestedFormat().alphaBufferSize() << "actual alpha" << window->format().alphaBufferSize();
+    }
     KWindowEffects::enableBlurBehind(window, translucent, QRegion());
 }
 

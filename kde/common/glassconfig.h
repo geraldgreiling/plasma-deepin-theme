@@ -25,7 +25,12 @@ namespace DeepinGlass
 {
 
 
-/// Creates ~/.config/deepinglassrc with the defaults and comments if it does not exist yet.
+/// Version of the defaults in deepinglassrc.default ([General] ConfigVersion).
+inline constexpr int s_configVersion = 2;
+
+/// Creates ~/.config/deepinglassrc with the defaults and comments if it does not
+/// exist yet. A file written with older defaults is replaced once; the old one is
+/// kept as deepinglassrc.old.
 inline void ensureConfigFile()
 {
     static bool checked = false;
@@ -39,7 +44,13 @@ inline void ensureConfigFile()
     }
     const QString path = dir + QStringLiteral("/deepinglassrc");
     if (QFileInfo::exists(path)) {
-        return;
+        KConfig existing(path, KConfig::SimpleConfig);
+        if (KConfigGroup(&existing, QStringLiteral("General")).readEntry("ConfigVersion", 1) >= s_configVersion) {
+            return;
+        }
+        const QString backup = path + QStringLiteral(".old");
+        QFile::remove(backup);
+        QFile::rename(path, backup);
     }
     QDir().mkpath(dir);
     QSaveFile file(path);
@@ -47,6 +58,21 @@ inline void ensureConfigFile()
         file.write(s_defaultConfig);
         file.commit();
     }
+}
+
+/// Reads an opacity; "auto" (or a missing key) returns -1 = follow the title bar.
+inline qreal readOpacity(const KConfigGroup &g, const char *key, qreal fallback)
+{
+    const QString value = g.readEntry(key, QString()).trimmed();
+    if (value.isEmpty()) {
+        return fallback;
+    }
+    if (value.compare(QLatin1String("auto"), Qt::CaseInsensitive) == 0) {
+        return -1;
+    }
+    bool ok = false;
+    const qreal v = value.toDouble(&ok);
+    return ok ? qBound(0.0, v, 1.0) : fallback;
 }
 
 inline KSharedConfig::Ptr config()
@@ -87,10 +113,10 @@ struct DecorationConfig {
 
 struct StyleConfig {
     bool translucent = true;
-    qreal windowOpacity = 0.78;
+    qreal windowOpacity = -1; // -1: same as the title bar
     qreal menuOpacity = 0.82;
     qreal sidebarOpacity = 0.0;
-    qreal viewOpacity = 0.55;
+    qreal viewOpacity = 0.0;
     QStringList excluded;
 
     static StyleConfig load()
@@ -100,7 +126,7 @@ struct StyleConfig {
         const KConfigGroup g(cfg, QStringLiteral("Style"));
         StyleConfig c;
         c.translucent = g.readEntry("Translucent", c.translucent);
-        c.windowOpacity = qBound(0.0, g.readEntry("WindowOpacity", c.windowOpacity), 1.0);
+        c.windowOpacity = readOpacity(g, "WindowOpacity", c.windowOpacity);
         c.menuOpacity = qBound(0.0, g.readEntry("MenuOpacity", c.menuOpacity), 1.0);
         c.sidebarOpacity = qBound(0.0, g.readEntry("SidebarOpacity", c.sidebarOpacity), 1.0);
         c.viewOpacity = qBound(0.0, g.readEntry("ViewOpacity", c.viewOpacity), 1.0);
@@ -111,9 +137,10 @@ struct StyleConfig {
 
 struct QuickConfig {
     bool translucent = true;
-    qreal windowOpacity = 0.5;
-    qreal viewOpacity = 0.4;
-    qreal headerOpacity = 0.45;
+    qreal windowOpacity = -1; // -1: same as the title bar
+    qreal pageOpacity = 0.0;
+    qreal viewOpacity = 0.0;
+    qreal headerOpacity = 0.0;
     QStringList excluded;
 
     static QuickConfig load()
@@ -123,7 +150,8 @@ struct QuickConfig {
         const KConfigGroup g(cfg, QStringLiteral("QtQuick"));
         QuickConfig c;
         c.translucent = g.readEntry("Translucent", c.translucent);
-        c.windowOpacity = qBound(0.0, g.readEntry("WindowOpacity", c.windowOpacity), 1.0);
+        c.windowOpacity = readOpacity(g, "WindowOpacity", c.windowOpacity);
+        c.pageOpacity = qBound(0.0, g.readEntry("PageOpacity", c.pageOpacity), 1.0);
         c.viewOpacity = qBound(0.0, g.readEntry("ViewOpacity", c.viewOpacity), 1.0);
         c.headerOpacity = qBound(0.0, g.readEntry("HeaderOpacity", c.headerOpacity), 1.0);
         c.excluded = g.readEntry("ExcludedApplications", QStringList());
