@@ -18,6 +18,7 @@
 #include <QQuickItem>
 #include <QQuickRenderControl>
 #include <QQuickWindow>
+#include <QSGRendererInterface>
 #include <QSurfaceFormat>
 
 namespace DeepinGlass
@@ -150,10 +151,13 @@ void GlassController::prepareWindow(QQuickWindow *window)
     m_windows.insert(window);
     connect(window, &QObject::destroyed, this, [this, window] {
         m_windows.remove(window);
+        m_premultiplied.remove(window);
     });
     connect(window, &QQuickWindow::colorChanged, this, [this, window] {
+        premultiplyClearColor(window);
         updateBlur(window);
     });
+    premultiplyClearColor(window);
     if (window->isVisible()) {
         updateBlur(window);
     }
@@ -181,6 +185,28 @@ void GlassController::polishItem(QQuickItem *item)
             }
         },
         Qt::QueuedConnection);
+}
+
+void GlassController::premultiplyClearColor(QQuickWindow *window)
+{
+    // The window colour comes from a QML binding (Kirigami.Theme.backgroundColor,
+    // straight alpha). With OpenGL/Vulkan Qt Quick clears the premultiplied swap
+    // chain with exactly this value, so e.g. (0.97, 0.97, 0.97, 0.72) adds more
+    // light than its alpha allows and the window turns out (nearly) opaque white.
+    // The software backend clears with QPainter, which premultiplies itself.
+    if (QQuickWindow::graphicsApi() == QSGRendererInterface::Software) {
+        return;
+    }
+    const QColor color = window->color();
+    if (color.alpha() == 255 || color == m_premultiplied.value(window)) {
+        return;
+    }
+    const QColor premultiplied = QColor::fromRgbF(color.redF() * color.alphaF(), color.greenF() * color.alphaF(),
+                                                  color.blueF() * color.alphaF(), color.alphaF());
+    m_premultiplied.insert(window, premultiplied);
+    // a C++ setter does not remove the QML binding; when the binding changes the
+    // colour again, it is premultiplied again
+    window->setColor(premultiplied);
 }
 
 void GlassController::updateBlur(QQuickWindow *window)

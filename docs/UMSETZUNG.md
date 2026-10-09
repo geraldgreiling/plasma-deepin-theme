@@ -189,3 +189,9 @@ Kirigami-Plugin mit allen Standardwerten und Kommentaren angelegt (Vorlage
 * Diagnose: `tools/check-glass.sh <programm>`.
 * Getestet in der verschachtelten KWin-Sitzung (Software-Rendering) mit
   Dolphin, Discover und Kirigami Gallery.
+* Hardware-Rendering (OpenGL/Vulkan): Qt Quick übernimmt die Fensterfarbe
+  unverändert als Löschfarbe in eine Fläche mit vormultipliziertem Alpha. Eine
+  halbtransparente Farbe wie (0,97; 0,97; 0,97; 0,72) wirkt dort fast deckend
+  weiß. Das Plugin multipliziert die Fensterfarbe deshalb vor, außer beim
+  Software-Renderer. Kirigami-Karten: das 60-%-„Schatten“-Rechteck hinter der
+  Karte wird unter Glas ausgeblendet.

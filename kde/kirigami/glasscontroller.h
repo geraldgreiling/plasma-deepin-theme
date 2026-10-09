@@ -12,6 +12,7 @@
 #include <QObject>
 #include <QPalette>
 #include <QPointer>
+#include <QHash>
 #include <QSet>
 
 class QQuickItem;
@@ -63,6 +64,9 @@ protected:
 private:
     GlassController();
     void updateBlur(QQuickWindow *window);
+    /// Hardware backends use the window colour unchanged as clear colour, but the
+    /// surface is premultiplied: premultiply translucent window colours there.
+    void premultiplyClearColor(QQuickWindow *window);
     /// Opacity of the window surface: the configured value or the title bar's.
     qreal windowOpacity(bool active) const;
 
@@ -70,6 +74,7 @@ private:
     DecorationConfig m_decoConfig;
     bool m_enabled = false;
     QSet<QQuickWindow *> m_windows;
+    QHash<QQuickWindow *, QColor> m_premultiplied;
 };
 
 } // namespace DeepinGlass
