@@ -29,7 +29,7 @@ endorsed by Deepin / UnionTech. "Deepin" is used only to describe the look.
 | Cursors | Deepin Bloom Cursors (+ Dark) | KDE Store |
 | Login screen (SDDM, Qt 6) | Deepin (Plasma) | KDE Store |
 | Boot animation (Plymouth, looks like the splash screen, with LUKS password prompt) | Deepin (Plasma) | KDE Store |
-| GTK 3 / GTK 4 themes (+ stylesheet for libadwaita apps) | Deepin-Glass, Deepin-Glass-Dark | KDE Store |
+| GTK 3 / GTK 4 themes (+ stylesheet for libadwaita apps) | Deepin-Glass, Deepin-Glass-Dark, Deepin-Glass-Translucent(-Dark) | KDE Store |
 
 ## Installation
 
@@ -102,6 +102,26 @@ Dialogs, sheets and menus inside a window stay opaque. `[QtQuick]
 Translucent=false` turns it back into the unchanged original; uninstalling the
 package restores the original plugin.
 
+## Glass for GTK applications (optional)
+
+GTK applications cannot ask KWin for blur, so the default GTK themes are opaque
+and only the title bar (drawn by KWin) is glass. With the third party KWin effect
+[Better Blur DX](https://github.com/xarblu/kwin-effects-better-blur-dx), which can
+blur behind any window, GTK 3/4 applications get the same glass:
+
+```sh
+paru -S kwin-effects-better-blur-dx
+./install.sh --gtk-glass        # or tools/setup-gtk-glass.sh
+```
+
+The script replaces KWin's blur effect with Better Blur DX (it handles the blur
+requests of the decoration and the Qt applications as well), adds the GTK
+applications it finds to the effect's force-blur list and selects
+*Deepin-Glass-Translucent* with the opacities from `deepinglassrc`. Run it again
+after installing GTK applications; `tools/setup-gtk-glass.sh --off` undoes it.
+Better Blur DX is built for one exact KWin version and must be rebuilt after KWin
+updates. libadwaita applications ignore GTK themes and stay opaque.
+
 ## Troubleshooting
 
 `tools/check-glass.sh plasma-discover` lists the installed plugins, the
@@ -114,8 +134,8 @@ window setup.
 
 * **Glass in applications** works for Qt Widgets applications (Dolphin, Kate,
   Konsole, …), Kirigami applications (Discover, …), QML in Qt Widgets windows
-  (System Settings) and QQuickView windows (Spectacle). GTK applications stay
-  opaque.
+  (System Settings) and QQuickView windows (Spectacle). GTK applications only
+  with the optional setup above; libadwaita applications stay opaque.
 * The Kirigami plugin is a copy of qqc2-desktop-style's plugin
   (`kde/kirigami/README.md`); new upstream features need to be merged by hand.
   GTK applications cannot request blur from KWin, so the GTK themes are opaque.

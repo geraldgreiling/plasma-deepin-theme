@@ -29,7 +29,7 @@ for lnf in org.plasmadeepin.light.desktop org.plasmadeepin.dark.desktop; do
 done
 tar -C sddm -czf "$DIST/plasma-deepin-sddm.tar.gz" plasma-deepin
 tar -C plymouth -czf "$DIST/plasma-deepin-plymouth.tar.gz" plasma-deepin
-tar -C gtk -czf "$DIST/Deepin-Glass-gtk.tar.gz" Deepin-Glass Deepin-Glass-Dark libadwaita
+tar -C gtk -czf "$DIST/Deepin-Glass-gtk.tar.gz" Deepin-Glass Deepin-Glass-Dark Deepin-Glass-Translucent Deepin-Glass-Translucent-Dark libadwaita
 
 # icons and cursors are built from linuxdeepin/deepin-icon-theme
 tools/fetch-deepin-icon-theme.sh "$BUILD/deepin-icon-theme"

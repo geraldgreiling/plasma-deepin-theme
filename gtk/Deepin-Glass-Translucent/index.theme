@@ -1,0 +1,11 @@
+[Desktop Entry]
+Type=X-GNOME-Metatheme
+Name=Deepin-Glass-Translucent
+Comment=GTK theme in the style of the Deepin desktop, matching the Deepin Glass Plasma theme (translucent, needs a force-blur KWin effect)
+Encoding=UTF-8
+
+[X-GNOME-Metatheme]
+GtkTheme=Deepin-Glass-Translucent
+IconTheme=Deepin-Bloom
+CursorTheme=Deepin-Bloom-Cursors
+ButtonLayout=:minimize,maximize,close

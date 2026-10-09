@@ -10,6 +10,8 @@
 #   ./install.sh --sddm          additionally install the SDDM theme (uses sudo)
 #   ./install.sh --plymouth      additionally install and activate the Plymouth boot animation (uses sudo)
 #   ./install.sh --native        additionally build and install decoration + app style (uses sudo)
+#   ./install.sh --gtk-glass     additionally glass for GTK applications (needs the AUR package
+#                                kwin-effects-better-blur-dx, see tools/setup-gtk-glass.sh)
 #   ./install.sh --uninstall     remove everything this script installed for the user
 set -euo pipefail
 cd "$(dirname "${BASH_SOURCE[0]}")"
@@ -26,8 +28,10 @@ if [[ "$ARGS" == *" --uninstall "* ]]; then
            "$DATA/plasma/look-and-feel/org.plasmadeepin.dark.desktop" \
            "$DATA/icons/Deepin-Bloom" "$DATA/icons/Deepin-Bloom-Dark" \
            "$DATA/icons/Deepin-Bloom-Cursors" "$DATA/icons/Deepin-Bloom-Cursors-Dark" \
-           "$DATA/themes/Deepin-Glass" "$DATA/themes/Deepin-Glass-Dark"
+           "$DATA/themes/Deepin-Glass" "$DATA/themes/Deepin-Glass-Dark" \
+           "$DATA/themes/Deepin-Glass-Translucent" "$DATA/themes/Deepin-Glass-Translucent-Dark"
     echo "Removed. ~/.config/gtk-4.0/gtk.css and system wide parts (SDDM, AUR package) are left alone."
+    echo "If you used --gtk-glass: tools/setup-gtk-glass.sh --off restores KWin's blur effect."
     exit 0
 fi
 
@@ -46,7 +50,7 @@ mkdir -p "$CONF"
 [[ -f "$CONF/deepinglassrc" ]] || cp kde/common/deepinglassrc.default "$CONF/deepinglassrc"
 
 echo ":: GTK 3/4 themes"
-for t in Deepin-Glass Deepin-Glass-Dark; do
+for t in Deepin-Glass Deepin-Glass-Dark Deepin-Glass-Translucent Deepin-Glass-Translucent-Dark; do
     rm -rf "$DATA/themes/$t"
     cp -r "gtk/$t" "$DATA/themes/"
 done
@@ -92,6 +96,11 @@ if [[ "$ARGS" == *" --native "* ]]; then
     cmake -B build/native -S . -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=/usr
     cmake --build build/native
     sudo cmake --install build/native
+fi
+
+if [[ "$ARGS" == *" --gtk-glass "* ]]; then
+    echo ":: glass for GTK applications"
+    tools/setup-gtk-glass.sh
 fi
 
 cat <<'MSG'

@@ -232,6 +232,36 @@ windowcontrols > button.close:hover { background-image: image(@deepin_warning); 
 """
 
 
+# Translucent variants ("Deepin-Glass-Translucent"): one glass surface per window like
+# the Qt applications. GTK cannot ask KWin for blur, so these are meant to be used
+# together with a force-blur KWin effect (tools/setup-gtk-glass.sh). The opacities
+# are the defaults of [Decoration] in deepinglassrc; setup-gtk-glass.sh replaces
+# the marked values with the user's settings.
+GLASS_RULES = """
+/* ------------------------------------------------ Deepin Glass: translucent window */
+window.background, dialog.background { background-color: alpha(@deepin_bg, 0.72 /*deepinglass:active*/); }
+window.background:backdrop, dialog.background:backdrop { background-color: alpha(@deepin_bg, 0.58 /*deepinglass:inactive*/); }
+
+/* everything lying on the window surface adds no layer of its own */
+headerbar, headerbar:backdrop, .titlebar:not(headerbar), .titlebar:backdrop, toolbar, .toolbar, actionbar > revealer > box,
+searchbar > revealer > box, .inline-toolbar, statusbar, infobar:not(.info):not(.warning):not(.error):not(.question),
+.sidebar, stacksidebar, placessidebar, .navigation-sidebar, sidebar, paned, scrolledwindow, viewport,
+.view, view, iconview, treeview.view, textview > text, list, listview, columnview, gridview,
+notebook > stack, notebook > stack:not(:only-child), notebook > header, stack, frame > border, .frame, flowbox, flowboxchild {
+    background-color: transparent; background-image: none; }
+headerbar, .titlebar:not(headerbar) { box-shadow: none; }
+
+/* rows and cells: only hover and selection are painted */
+list > row, listview > row, columnview > listview > row, gridview > child, flowboxchild { background-color: transparent; }
+"""
+
+# GTK 3 draws the title bar outside the window background node
+GLASS_RULES_GTK3 = """
+headerbar.titlebar, .titlebar:not(headerbar) { background-color: alpha(@deepin_bg, 0.72 /*deepinglass:active*/); }
+headerbar.titlebar:backdrop, .titlebar:not(headerbar):backdrop { background-color: alpha(@deepin_bg, 0.58 /*deepinglass:inactive*/); }
+"""
+
+
 def header(kind, upstream):
     return f"""/*
  * Deepin Glass - {kind}
@@ -244,11 +274,12 @@ def header(kind, upstream):
 """
 
 
-def gtk_theme(lib, base_path, variant, asset_prefix, rules, kind, upstream):
+def gtk_theme(lib, base_path, variant, asset_prefix, rules, kind, upstream, glass=False):
     css = extract(lib, base_path)
     css = css.replace('url("assets/', f'url("resource://{asset_prefix}/assets/')
     css = recolor(css, variant)
-    return header(kind, upstream) + defines(variant) + css + COMMON_RULES + rules
+    glass_rules = (GLASS_RULES + (GLASS_RULES_GTK3 if rules is GTK3_RULES else '')) if glass else ''
+    return header(kind, upstream) + defines(variant) + css + COMMON_RULES + rules + glass_rules
 
 
 LIBADWAITA = """/*
@@ -313,10 +344,12 @@ windowcontrols > button.close:hover > image { background-color: #ff5736; color: 
 def main():
     out = sys.argv[1] if len(sys.argv) > 1 else os.path.join(os.path.dirname(__file__), '..', 'gtk')
     themes = {
-        'Deepin-Glass': 'light',
-        'Deepin-Glass-Dark': 'dark',
+        'Deepin-Glass': ('light', False),
+        'Deepin-Glass-Dark': ('dark', False),
+        'Deepin-Glass-Translucent': ('light', True),
+        'Deepin-Glass-Translucent-Dark': ('dark', True),
     }
-    for name, default_variant in themes.items():
+    for name, (default_variant, glass) in themes.items():
         root = os.path.join(out, name)
         for d in ('gtk-3.0', 'gtk-4.0'):
             os.makedirs(os.path.join(root, d), exist_ok=True)
@@ -324,9 +357,9 @@ def main():
             if suffix and default_variant == 'dark':
                 continue
             g3 = gtk_theme(GTK3_LIB, f'/org/gtk/libgtk/theme/Adwaita/gtk-contained{"-dark" if variant == "dark" else ""}.css',
-                           variant, '/org/gtk/libgtk/theme/Adwaita', GTK3_RULES, f'GTK 3 ({variant})', 'Adwaita')
+                           variant, '/org/gtk/libgtk/theme/Adwaita', GTK3_RULES, f'GTK 3 ({variant})', 'Adwaita', glass)
             g4 = gtk_theme(GTK4_LIB, f'/org/gtk/libgtk/theme/Default/Default-{variant}.css',
-                           variant, '/org/gtk/libgtk/theme/Default', GTK4_RULES, f'GTK 4 ({variant})', 'Default')
+                           variant, '/org/gtk/libgtk/theme/Default', GTK4_RULES, f'GTK 4 ({variant})', 'Default', glass)
             with open(os.path.join(root, 'gtk-3.0', f'gtk{suffix}.css'), 'w') as fh:
                 fh.write(g3)
             with open(os.path.join(root, 'gtk-4.0', f'gtk{suffix}.css'), 'w') as fh:
@@ -335,7 +368,7 @@ def main():
             fh.write(f"""[Desktop Entry]
 Type=X-GNOME-Metatheme
 Name={name}
-Comment=GTK theme in the style of the Deepin desktop, matching the Deepin Glass Plasma theme
+Comment=GTK theme in the style of the Deepin desktop, matching the Deepin Glass Plasma theme{' (translucent, needs a force-blur KWin effect)' if glass else ''}
 Encoding=UTF-8
 
 [X-GNOME-Metatheme]

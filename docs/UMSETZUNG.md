@@ -213,3 +213,24 @@ Kirigami-Plugin mit allen Standardwerten und Kommentaren angelegt (Vorlage
 * Getestet in der Testumgebung (OpenGL über Mesa): Systemeinstellungen, Spectacle
   (Startfenster), Dolphin, Discover. Spectacles Bildansicht nach einer Aufnahme
   war dort nicht prüfbar.
+
+## Ergänzung – Glas für GTK-Programme (optional)
+
+* GTK-Programme (z. B. Shelly, GTK 4) können bei KWin keinen Blur anfordern.
+  Variante gewählt: optional über den Drittanbieter-Effekt Better Blur DX
+  (AUR `kwin-effects-better-blur-dx`), der hinter beliebigen Fenstern
+  weichzeichnet und KWins Blur-Effekt ersetzt.
+* Neue GTK-Themes `Deepin-Glass-Translucent(-Dark)` (GTK 3 und 4): Fenster-
+  hintergrund mit der Deckkraft der Titelleiste, `:backdrop` mit der inaktiven
+  Deckkraft, Kopfleisten, Seitenleisten, Listen und Ansichten ohne eigene Schicht;
+  Menüs und Popover bleiben deckend. Bei GTK 3 liegt die Titelleiste außerhalb
+  des Fensterhintergrunds und bekommt das Glas selbst.
+* `tools/setup-gtk-glass.sh` (bzw. `./install.sh --gtk-glass`): übernimmt die
+  Deckkraft aus `deepinglassrc`, sucht die installierten GTK-3/4-Programme (über
+  `ldd`, ohne libadwaita-Programme) und trägt sie als Force-Blur-Liste ein,
+  schaltet von `blur` auf `better_blur_dx` um, setzt den Eckenradius der
+  Dekoration und wählt das passende GTK-Theme. `--off` macht das rückgängig,
+  `--list` zeigt die gefundenen Programme.
+* Getestet: GTK-3/4-Widget-Factory mit den transparenten Themes (hell/dunkel) in
+  der Testumgebung, Setup-Skript gegen ein Test-Home. Better Blur DX selbst ließ
+  sich dort nicht testen (KWin ohne GPU).
