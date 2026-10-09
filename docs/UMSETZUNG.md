@@ -195,3 +195,21 @@ Kirigami-Plugin mit allen Standardwerten und Kommentaren angelegt (Vorlage
   weiß. Das Plugin multipliziert die Fensterfarbe deshalb vor, außer beim
   Software-Renderer. Kirigami-Karten: das 60-%-„Schatten“-Rechteck hinter der
   Karte wird unter Glas ausgeblendet.
+
+## Ergänzung – Auswahl, Systemeinstellungen, Spectacle
+
+* Auswahl in Listen (z. B. Dolphins Orte-Leiste): Qt nimmt Listen ohne
+  Tastaturfokus den Zustand „aktiv“, die Auswahl erschien deshalb in der
+  Farbe inaktiver Fenster. Der Stil richtet sie jetzt nach der Fensteraktivierung
+  aus, wie DTK.
+* Systemeinstellungen (QML in `QQuickWidget` in einem Widget-Fenster): nicht mehr
+  ausgenommen. Der Stil gibt `QQuickWidget`s in Glasfenstern die Glasfarbe als
+  Löschfarbe (bzw. transparent, wenn sie über den Widgets liegen wie KCMs) und
+  markiert ihr Offscreen-Fenster; das Kirigami-Plugin macht die Hintergründe der
+  QML darin transparent. Dafür braucht der Stil jetzt Qt6::QuickWidgets.
+* Spectacle: nicht mehr ausgenommen. Rahmenlose Fenster (Bereichsauswahl) bleiben
+  ohne Glas; `QQuickView`-Fenster ohne eigenes Kirigami-Theme, deren Farbe aus der
+  Anwendungspalette stammt, bekommen die Deckkraft der Titelleiste.
+* Getestet in der Testumgebung (OpenGL über Mesa): Systemeinstellungen, Spectacle
+  (Startfenster), Dolphin, Discover. Spectacles Bildansicht nach einer Aufnahme
+  war dort nicht prüfbar.

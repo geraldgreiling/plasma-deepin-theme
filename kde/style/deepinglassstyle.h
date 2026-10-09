@@ -9,6 +9,7 @@
 #include <QPaintEvent>
 #include <QPointer>
 #include <QProxyStyle>
+#include <QStyleOption>
 #include <QSet>
 
 namespace DeepinGlass
@@ -61,6 +62,10 @@ private:
     void makeContentTranslucent(QWidget *widget) const;
     qreal windowOpacity(bool active) const;
     QRect toolsAreaRect(const QWidget *window) const;
+    /// QML in widget windows (QQuickWidget, e.g. System Settings): glass clear colour
+    void updateQuickWidget(QWidget *quickWidget) const;
+    /// item views: selections follow the window activation, not the keyboard focus
+    static const QStyleOption *activeItemOption(const QStyleOption *option, const QWidget *widget, QStyleOptionViewItem &copy);
 
     void drawButtonPanel(const QStyleOption *option, QPainter *painter, bool isDefault, bool flat) const;
     void drawInputPanel(const QStyleOption *option, QPainter *painter, const QRect &rect) const;

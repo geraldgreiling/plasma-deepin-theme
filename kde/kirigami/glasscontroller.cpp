@@ -3,6 +3,7 @@
  * SPDX-License-Identifier: GPL-3.0-or-later
  */
 #include "glasscontroller.h"
+#include "glasstheme.h"
 
 #include <KWindowEffects>
 #include <KWindowSystem>
@@ -12,6 +13,8 @@
 #endif
 
 #include <QCoreApplication>
+#include <QGuiApplication>
+#include <QPalette>
 #include <QDebug>
 #include <QEvent>
 #include <QFileInfo>
@@ -36,7 +39,6 @@ const QStringList s_builtinExcluded = {
     QStringLiteral("sddm-greeter"),
     QStringLiteral("sddm-greeter-qt6"),
     QStringLiteral("plasma-emojier"),
-    QStringLiteral("spectacle"),
 };
 
 bool compositingActive()
@@ -87,11 +89,18 @@ qreal GlassController::backgroundOpacity(Kirigami::Platform::PlatformTheme::Colo
     if (isFloatingPopup(themeParent)) {
         return 1.0;
     }
-    if (auto item = qobject_cast<QQuickItem *>(themeParent); item && item->window()
-        && QQuickRenderControl::renderWindowFor(item->window())) {
-        // QML embedded in a Qt Widgets window (QQuickWidget): the widget window
-        // decides about translucency, see the application style
-        return 1.0;
+    if (auto item = qobject_cast<QQuickItem *>(themeParent); item && item->window()) {
+        QQuickWindow *window = item->window();
+        if (isGlassOffscreenWindow(window)) {
+            // QML in a QQuickWidget of a glass widget window (System Settings):
+            // the widget window paints the glass, see the application style
+        } else if (window->objectName() == QLatin1String("QQuickWidgetOffscreenWindow") || QQuickRenderControl::renderWindowFor(window)) {
+            // other embedded QML (opaque widget window, other offscreen rendering)
+            return 1.0;
+        } else if (!isGlassCandidate(window)) {
+            // windows that are not glass (frameless overlays, popup windows)
+            return 1.0;
+        }
     }
     for (auto item = qobject_cast<QQuickItem *>(themeParent); item; item = item->parentItem()) {
         if (item->inherits("QQuickPopupItem")) {
@@ -109,8 +118,8 @@ qreal GlassController::backgroundOpacity(Kirigami::Platform::PlatformTheme::Colo
     // The window itself is the one glass surface, with the opacity of the title bar.
     // Everything drawn on top of it (pages, side bars, views, tool bars) only adds
     // the configured extra layers, by default none, so the window looks uniform.
-    if (qobject_cast<QQuickWindow *>(themeParent)) {
-        return windowOpacity(group != QPalette::Inactive);
+    if (auto window = qobject_cast<QQuickWindow *>(themeParent)) {
+        return isGlassCandidate(window) ? windowOpacity(group != QPalette::Inactive) : 1.0;
     }
     switch (set) {
     case PlatformTheme::View:
@@ -130,14 +139,34 @@ qreal GlassController::windowOpacity(bool active) const
     return active ? m_decoConfig.activeOpacity : m_decoConfig.inactiveOpacity;
 }
 
-void GlassController::prepareWindow(QQuickWindow *window)
+bool GlassController::isGlassOffscreenWindow(const QQuickWindow *window)
 {
-    if (!m_enabled || !window || m_windows.contains(window)) {
+    return window && window->property("_deepinglass_glass").toBool();
+}
+
+bool GlassController::isGlassCandidate(const QQuickWindow *window)
+{
+    const Qt::WindowType type = window->type();
+    return (type == Qt::Window || type == Qt::Dialog) && !window->flags().testFlag(Qt::FramelessWindowHint)
+        && window->objectName() != QLatin1String("QQuickWidgetOffscreenWindow")
+        && !QQuickRenderControl::renderWindowFor(const_cast<QQuickWindow *>(window));
+}
+
+void GlassController::prepareWindow(QQuickWindow *window, bool ownTheme)
+{
+    if (!m_enabled || !window) {
         return;
     }
-    // popups and tool tips keep their own (often rounded) shape
-    const Qt::WindowType type = window->type();
-    if (type != Qt::Window && type != Qt::Dialog) {
+    if (ownTheme) {
+        m_themedWindows.insert(window);
+    }
+    if (m_windows.contains(window)) {
+        return;
+    }
+    // popups and tool tips keep their own (often rounded) shape; frameless windows are
+    // overlays (e.g. Spectacle's region selection) without a title bar to match;
+    // QQuickWidget renders offscreen into a widget window, see the application style
+    if (!isGlassCandidate(window)) {
         return;
     }
     if (qEnvironmentVariableIsSet("DEEPINGLASS_DEBUG")) {
@@ -151,13 +180,20 @@ void GlassController::prepareWindow(QQuickWindow *window)
     m_windows.insert(window);
     connect(window, &QObject::destroyed, this, [this, window] {
         m_windows.remove(window);
-        m_premultiplied.remove(window);
+        m_themedWindows.remove(window);
+        m_applied.remove(window);
+        m_requested.remove(window);
     });
     connect(window, &QQuickWindow::colorChanged, this, [this, window] {
-        premultiplyClearColor(window);
+        applyClearColor(window);
         updateBlur(window);
     });
-    premultiplyClearColor(window);
+    connect(window, &QWindow::activeChanged, this, [this, window] {
+        if (!m_themedWindows.contains(window)) {
+            applyClearColor(window); // the theme of themed windows does it
+        }
+    });
+    applyClearColor(window);
     if (window->isVisible()) {
         updateBlur(window);
     }
@@ -187,26 +223,43 @@ void GlassController::polishItem(QQuickItem *item)
         Qt::QueuedConnection);
 }
 
-void GlassController::premultiplyClearColor(QQuickWindow *window)
+void GlassController::applyClearColor(QQuickWindow *window)
 {
-    // The window colour comes from a QML binding (Kirigami.Theme.backgroundColor,
-    // straight alpha). With OpenGL/Vulkan Qt Quick clears the premultiplied swap
-    // chain with exactly this value, so e.g. (0.97, 0.97, 0.97, 0.72) adds more
-    // light than its alpha allows and the window turns out (nearly) opaque white.
-    // The software backend clears with QPainter, which premultiplies itself.
-    if (QQuickWindow::graphicsApi() == QSGRendererInterface::Software) {
-        return;
+    QColor requested = window->color();
+    if (m_applied.contains(window) && requested == m_applied.value(window)) {
+        requested = m_requested.value(window); // our own change, or re-applying
     }
-    const QColor color = window->color();
-    if (color.alpha() == 255 || color == m_premultiplied.value(window)) {
-        return;
+    m_requested.insert(window, requested);
+    QColor color = requested;
+    if (m_themedWindows.contains(window)) {
+        if (requested.alpha() == 255) {
+            return; // opaque on purpose (e.g. excluded colour set)
+        }
+    } else {
+        // Windows without a theme of their own (QQuickView, e.g. Spectacle) take their
+        // colour from the application palette (Window or Base, the latter made
+        // translucent for content views by the widget style). Those get the glass
+        // with the title bar's opacity; other colours are the application's own.
+        const QPalette pal = qGuiApp->palette();
+        const QRgb rgb = requested.rgb();
+        if (rgb != pal.color(QPalette::Window).rgb() && rgb != pal.color(QPalette::Base).rgb()) {
+            return;
+        }
+        color.setAlphaF(windowOpacity(window->isActive()));
     }
-    const QColor premultiplied = QColor::fromRgbF(color.redF() * color.alphaF(), color.greenF() * color.alphaF(),
-                                                  color.blueF() * color.alphaF(), color.alphaF());
-    m_premultiplied.insert(window, premultiplied);
-    // a C++ setter does not remove the QML binding; when the binding changes the
-    // colour again, it is premultiplied again
-    window->setColor(premultiplied);
+    // The colour is straight alpha. With OpenGL/Vulkan Qt Quick clears the
+    // premultiplied swap chain with exactly this value, so e.g. (0.97, 0.97, 0.97, 0.72)
+    // adds more light than its alpha allows and the window turns out (nearly) opaque
+    // white. The software backend clears with QPainter, which premultiplies itself.
+    if (QQuickWindow::graphicsApi() != QSGRendererInterface::Software) {
+        color = QColor::fromRgbF(color.redF() * color.alphaF(), color.greenF() * color.alphaF(), color.blueF() * color.alphaF(), color.alphaF());
+    }
+    m_applied.insert(window, color);
+    if (window->color() != color) {
+        // a C++ setter does not remove a QML binding: when the binding changes the
+        // colour again, this runs again
+        window->setColor(color);
+    }
 }
 
 void GlassController::updateBlur(QQuickWindow *window)
@@ -224,6 +277,11 @@ void GlassController::updateBlur(QQuickWindow *window)
 
 bool GlassController::eventFilter(QObject *object, QEvent *event)
 {
+    if (event->type() == QEvent::DynamicPropertyChange
+        && static_cast<QDynamicPropertyChangeEvent *>(event)->propertyName() == "_deepinglass_glass") {
+        // the widget style turned a QQuickWidget into glass after its QML was loaded
+        GlassTheme::syncAllColors();
+    }
     if (event->type() == QEvent::Show || event->type() == QEvent::Expose) {
         if (auto window = qobject_cast<QQuickWindow *>(object); window && m_windows.contains(window)) {
             updateBlur(window);

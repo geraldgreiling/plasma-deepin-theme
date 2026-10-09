@@ -12,6 +12,8 @@ target_link_libraries(deepinglassstyle
         Qt6::Core
         Qt6::Gui
         Qt6::Widgets
+        Qt6::Quick
+        Qt6::QuickWidgets
         KF6::ConfigCore
         KF6::WindowSystem
 )

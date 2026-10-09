@@ -213,7 +213,7 @@ GlassTheme::GlassTheme(QObject *parent)
     // Deepin Glass: the theme of a Kirigami window is attached to the window itself and
     // created before the window is shown, i.e. before the native window exists
     if (auto window = qobject_cast<QQuickWindow *>(parent)) {
-        DeepinGlass::GlassController::self()->prepareWindow(window);
+        DeepinGlass::GlassController::self()->prepareWindow(window, true);
     }
 
     setDefaultFont(qGuiApp->font());
@@ -225,6 +225,13 @@ GlassTheme::GlassTheme(QObject *parent)
         syncColors();
     }
     setConstructing(false);
+}
+
+void GlassTheme::syncAllColors()
+{
+    for (auto theme : std::as_const(s_style->watchers)) {
+        theme->syncColors();
+    }
 }
 
 GlassTheme::~GlassTheme()

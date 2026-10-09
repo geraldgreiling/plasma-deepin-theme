@@ -44,6 +44,7 @@ if(BUILD_DECORATION)
 endif()
 
 if(BUILD_STYLE)
+    find_package(Qt6 ${QT_MIN_VERSION} REQUIRED COMPONENTS Quick QuickWidgets)
     add_subdirectory(kde/style)
 endif()
 

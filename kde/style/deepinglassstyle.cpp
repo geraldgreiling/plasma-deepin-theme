@@ -19,6 +19,7 @@
 #include <QAbstractScrollArea>
 #include <QApplication>
 #include <QComboBox>
+#include <QDebug>
 #include <QDialog>
 #include <QFileInfo>
 #include <QLineEdit>
@@ -30,6 +31,8 @@
 #include <QPainter>
 #include <QPainterPath>
 #include <QPushButton>
+#include <QQuickWidget>
+#include <QQuickWindow>
 #include <QStyleFactory>
 #include <QStyleOption>
 #include <QToolBar>
@@ -93,7 +96,7 @@ const QStringList s_builtinExcluded = {
     QStringLiteral("krita"), QStringLiteral("kdenlive"), QStringLiteral("vlc"), QStringLiteral("smplayer"), QStringLiteral("obs"),
     QStringLiteral("VirtualBox"), QStringLiteral("VirtualBoxVM"), QStringLiteral("virt-manager"), QStringLiteral("steam"),
     QStringLiteral("haruna"), QStringLiteral("mpv"), QStringLiteral("dragon"), QStringLiteral("freecad"), QStringLiteral("FreeCAD"),
-    QStringLiteral("blender"), QStringLiteral("qtcreator"), QStringLiteral("systemsettings"), QStringLiteral("kinfocenter"), QStringLiteral("wireshark"), QStringLiteral("libreoffice"), QStringLiteral("soffice.bin"),
+    QStringLiteral("blender"), QStringLiteral("qtcreator"), QStringLiteral("wireshark"), QStringLiteral("libreoffice"), QStringLiteral("soffice.bin"),
 };
 } // namespace
 
@@ -270,6 +273,56 @@ qreal Style::windowOpacity(bool active) const
     return active ? m_decoConfig.activeOpacity : m_decoConfig.inactiveOpacity;
 }
 
+void Style::updateQuickWidget(QWidget *widget) const
+{
+    auto quickWidget = qobject_cast<QQuickWidget *>(widget);
+    if (!quickWidget || !quickWidget->quickWindow()) {
+        return;
+    }
+    QWidget *window = quickWidget->window();
+    const bool active = window->isActiveWindow();
+    if (quickWidget->testAttribute(Qt::WA_AlwaysStackOnTop)) {
+        // composed on top of the widgets below it (KCMs): the window glass is already there
+        quickWidget->setClearColor(Qt::transparent);
+        if (!quickWidget->quickWindow()->property("_deepinglass_glass").toBool()) {
+            quickWidget->quickWindow()->setProperty("_deepinglass_glass", true);
+        }
+        return;
+    }
+    QColor color = withAlpha(window->palette().color(active ? QPalette::Active : QPalette::Inactive, QPalette::Window), windowOpacity(active));
+    // Qt Quick clears the (premultiplied) render target with this colour unchanged,
+    // except for the software backend, which premultiplies itself
+    if (QQuickWindow::graphicsApi() != QSGRendererInterface::Software) {
+        color = QColor::fromRgbF(color.redF() * color.alphaF(), color.greenF() * color.alphaF(), color.blueF() * color.alphaF(), color.alphaF());
+    }
+    quickWidget->setClearColor(color);
+    if (qEnvironmentVariableIsSet("DEEPINGLASS_DEBUG")) {
+        qWarning() << "DeepinGlass: QQuickWidget" << quickWidget << "in" << window << "clear colour" << color;
+    }
+    // tells the Deepin Glass Kirigami plugin to make the backgrounds of this QML translucent
+    if (!quickWidget->quickWindow()->property("_deepinglass_glass").toBool()) {
+        quickWidget->quickWindow()->setProperty("_deepinglass_glass", true);
+    }
+}
+
+const QStyleOption *Style::activeItemOption(const QStyleOption *option, const QWidget *widget, QStyleOptionViewItem &copy)
+{
+    // Qt drops State_Active from item views without keyboard focus, so selections in
+    // side panels (Dolphin places) showed the inactive accent in an active window.
+    // Like DTK, the selection follows the window activation.
+    auto viewItem = qstyleoption_cast<const QStyleOptionViewItem *>(option);
+    if (!viewItem || (option->state & State_Active)) {
+        return option;
+    }
+    const QWidget *view = widget ? widget : viewItem->widget;
+    if (!view || !view->window()->isActiveWindow()) {
+        return option;
+    }
+    copy = *viewItem;
+    copy.state |= State_Active;
+    return &copy;
+}
+
 void Style::makeContentTranslucent(QWidget *widget) const
 {
     if (m_config.viewOpacity >= 1.0) {
@@ -310,6 +363,10 @@ bool Style::eventFilter(QObject *object, QEvent *event)
         // active and inactive windows have different opacities, like the title bar
         if (isTranslucentWindow(widget)) {
             widget->update();
+            const auto quickWidgets = widget->findChildren<QQuickWidget *>();
+            for (QQuickWidget *quickWidget : quickWidgets) {
+                updateQuickWidget(quickWidget);
+            }
         }
         break;
     case QEvent::Paint:
@@ -318,6 +375,10 @@ bool Style::eventFilter(QObject *object, QEvent *event)
         }
         break;
     case QEvent::Show:
+        if (widget->inherits("QQuickWidget") && isTranslucentWindow(widget->window())) {
+            updateQuickWidget(widget);
+        }
+        [[fallthrough]];
     case QEvent::Resize:
         if (isTranslucentWindow(widget) || (qobject_cast<QMenu *>(widget) && widget->testAttribute(Qt::WA_TranslucentBackground))) {
             updateBlur(widget);
@@ -349,6 +410,18 @@ void Style::polish(QWidget *widget)
         return;
     }
 
+    // QML inside a glass widget window: the QQuickWidget renders offscreen and is
+    // composed into the window, its clear colour becomes the glass of that area
+    if (widget->inherits("QQuickWidget")) {
+        // often polished before it is put into its window (KCMs): check again on show
+        widget->removeEventFilter(this);
+        widget->installEventFilter(this);
+        if (isTranslucentWindow(widget->window())) {
+            updateQuickWidget(widget);
+        }
+        return;
+    }
+
     // side panels (Dolphin places, settings sidebars): let the window glass shine through
     if (auto area = qobject_cast<QAbstractScrollArea *>(widget)) {
         const bool sidePanel = area->property("_kde_side_panel_view").toBool() || area->inherits("KFilePlacesView");
@@ -372,7 +445,7 @@ void Style::polish(QWidget *widget)
 
 void Style::unpolish(QWidget *widget)
 {
-    if (widget && (isTranslucentWindow(widget) || qobject_cast<QMenu *>(widget))) {
+    if (widget && (isTranslucentWindow(widget) || qobject_cast<QMenu *>(widget) || widget->inherits("QQuickWidget"))) {
         widget->removeEventFilter(this);
     }
     QProxyStyle::unpolish(widget);
@@ -555,6 +628,11 @@ void Style::drawCheckIndicator(const QStyleOption *option, QPainter *painter, bo
 void Style::drawPrimitive(PrimitiveElement element, const QStyleOption *option, QPainter *painter, const QWidget *widget) const
 {
     switch (element) {
+    case PE_PanelItemViewItem: {
+        QStyleOptionViewItem copy;
+        QProxyStyle::drawPrimitive(element, activeItemOption(option, widget, copy), painter, widget);
+        return;
+    }
     case PE_PanelMenu:
         if (widget && widget->testAttribute(Qt::WA_TranslucentBackground) && !m_excludedApplication && compositingActive()) {
             painter->save();
@@ -599,6 +677,11 @@ void Style::drawPrimitive(PrimitiveElement element, const QStyleOption *option, 
 void Style::drawControl(ControlElement element, const QStyleOption *option, QPainter *painter, const QWidget *widget) const
 {
     switch (element) {
+    case CE_ItemViewItem: {
+        QStyleOptionViewItem copy;
+        QProxyStyle::drawControl(element, activeItemOption(option, widget, copy), painter, widget);
+        return;
+    }
     case CE_PushButtonBevel:
         if (auto button = qstyleoption_cast<const QStyleOptionButton *>(option)) {
             const bool flat = button->features & QStyleOptionButton::Flat;

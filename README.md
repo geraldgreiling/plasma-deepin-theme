@@ -113,8 +113,9 @@ window setup.
 ## Limitations
 
 * **Glass in applications** works for Qt Widgets applications (Dolphin, Kate,
-  Konsole, …) and Kirigami applications (Discover, …). QML embedded in Qt
-  Widgets windows (System Settings) and GTK applications stay opaque.
+  Konsole, …), Kirigami applications (Discover, …), QML in Qt Widgets windows
+  (System Settings) and QQuickView windows (Spectacle). GTK applications stay
+  opaque.
 * The Kirigami plugin is a copy of qqc2-desktop-style's plugin
   (`kde/kirigami/README.md`); new upstream features need to be merged by hand.
   GTK applications cannot request blur from KWin, so the GTK themes are opaque.

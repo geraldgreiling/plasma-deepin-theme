@@ -34,6 +34,8 @@ public:
     void syncWindow();
     void syncColors();
     void syncFrameContrast();
+    /// Deepin Glass: recomputes the colours of all themes
+    static void syncAllColors();
 
 protected:
     bool event(QEvent *event) override;
