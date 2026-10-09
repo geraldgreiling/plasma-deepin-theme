@@ -14,6 +14,7 @@
 #include <QPointer>
 #include <QSet>
 
+class QQuickItem;
 class QQuickWindow;
 
 namespace DeepinGlass
@@ -43,6 +44,10 @@ public:
 
     /// Called for every window a Kirigami theme gets attached to.
     void prepareWindow(QQuickWindow *window);
+
+    /// Called for every item a Kirigami theme gets attached to: hides fills that
+    /// only make sense below an opaque surface (see the implementation).
+    void polishItem(QQuickItem *item);
 
     static QColor withOpacity(QColor color, qreal opacity)
     {

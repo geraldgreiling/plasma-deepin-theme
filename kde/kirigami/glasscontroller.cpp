@@ -159,6 +159,30 @@ void GlassController::prepareWindow(QQuickWindow *window)
     }
 }
 
+void GlassController::polishItem(QQuickItem *item)
+{
+    if (!m_enabled || !item->inherits("QQuickRectangle")) {
+        return;
+    }
+    // Kirigami's card background (DefaultCardBackground, a ShadowedRectangle) draws a
+    // "basic drop shadow": a rectangle with 60 % of the background colour behind the
+    // card, offset by a pixel. Below an opaque card only that pixel shows; below a
+    // glass card it shows through as a milky fill and makes the card look opaque.
+    // z and the parent are set after the theme is created, hence the deferred check.
+    QMetaObject::invokeMethod(
+        item,
+        [this, item] {
+            QQuickItem *card = item->parentItem();
+            if (!card || !card->inherits("ShadowedRectangle") || item->z() >= 0) {
+                return;
+            }
+            if (backgroundOpacity(Kirigami::Platform::PlatformTheme::View, card, QPalette::Active) < 1.0) {
+                item->setOpacity(0.0);
+            }
+        },
+        Qt::QueuedConnection);
+}
+
 void GlassController::updateBlur(QQuickWindow *window)
 {
     if (!window->handle()) {

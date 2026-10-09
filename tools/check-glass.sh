@@ -44,4 +44,18 @@ if [[ -n "$APP" ]]; then
     QT_LOGGING_RULES="kf.kirigami.platform.debug=true" DEEPINGLASS_DEBUG=1 timeout 10 "$APP" 2>&1 \
         | grep -i "Loading style plugin\|Failed to find\|DeepinGlass:" | head -n 6 | sed 's/^/        /'
     info "Erwartet: org.kde.desktop.deepinglass.so, danach 'DeepinGlass: window ... color QColor(ARGB 0.72 ...) ... alpha 8'"
+
+    echo "Renderer und Fensterpuffer von $APP (startet das Programm für 8 Sekunden)"
+    LOG="$(mktemp)"
+    WAYLAND_DEBUG=1 QSG_INFO=1 QT_LOGGING_RULES="qt.scenegraph.general=true;qt.rhi.general=true" timeout 8 "$APP" >"$LOG" 2>&1
+    grep -E "qt\.(scenegraph|rhi)\.general" "$LOG" | grep -iE "backend|render loop|renderer|vendor|format|alpha|driver" | sort -u | head -n 12 | sed 's/^/        /'
+    # buffers handed to KWin: format AR24/AR30 = with alpha, XR24/XR30 = without
+    grep -E "set_opaque_region|zwp_linux_buffer_params_v1#[0-9]+\.create(_immed)?\(|wl_shm_pool#[0-9]+\.create_buffer\(" "$LOG" \
+        | awk -F'[(,)]' '!/create_buffer/ || $4 + 0 >= 300' | tail -n 6 \
+        | sed -e 's/875713089/875713089 (AR24, mit Alpha)/; s/875713112/875713112 (XR24, OHNE Alpha)/' \
+              -e 's/808669761/808669761 (AR30, mit Alpha)/; s/808669784/808669784 (XR30, OHNE Alpha)/' \
+              -e 's/create_buffer(.*, 0)$/& (ARGB, mit Alpha)/; s/create_buffer(.*, 1)$/& (XRGB, OHNE Alpha)/' \
+              -e 's/^/        /'
+    rm -f "$LOG"
+    info "Erwartet: Puffer mit Alpha und kein set_opaque_region über das ganze Fenster"
 fi

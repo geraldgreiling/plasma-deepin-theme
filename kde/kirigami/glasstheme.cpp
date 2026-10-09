@@ -205,6 +205,7 @@ GlassTheme::GlassTheme(QObject *parent)
         connect(parentItem, &QQuickItem::enabledChanged, this, &GlassTheme::syncColors);
         connect(parentItem, &QQuickItem::visibleChanged, this, &GlassTheme::syncColors);
         connect(parentItem, &QQuickItem::windowChanged, this, &GlassTheme::syncWindow);
+        DeepinGlass::GlassController::self()->polishItem(parentItem); // Deepin Glass
     }
 
     s_style->watchers.append(this);
