@@ -120,7 +120,14 @@ applications it finds to the effect's force-blur list and selects
 *Deepin-Glass-Translucent* with the opacities from `deepinglassrc`. Run it again
 after installing GTK applications; `tools/setup-gtk-glass.sh --off` undoes it.
 Better Blur DX is built for one exact KWin version and must be rebuilt after KWin
-updates. libadwaita applications ignore GTK themes and stay opaque.
+updates.
+
+libadwaita applications ignore GTK themes; they get the glass through the user
+stylesheet `~/.config/gtk-4.0/gtk.css` (`gtk/libadwaita/gtk-glass.css`, installed
+by the same script, an existing foreign file is backed up). Flatpak applications
+are allowed to read it (`flatpak override --user --filesystem=xdg-config/gtk-4.0:ro`)
+and are added to the blur list as well. libadwaita only allows colours and a few
+shapes to be overridden, so these applications keep the Adwaita layout.
 
 ## Troubleshooting
 
@@ -134,8 +141,8 @@ window setup.
 
 * **Glass in applications** works for Qt Widgets applications (Dolphin, Kate,
   Konsole, …), Kirigami applications (Discover, …), QML in Qt Widgets windows
-  (System Settings) and QQuickView windows (Spectacle). GTK applications only
-  with the optional setup above; libadwaita applications stay opaque.
+  (System Settings) and QQuickView windows (Spectacle). GTK and libadwaita
+  applications only with the optional setup above.
 * The Kirigami plugin is a copy of qqc2-desktop-style's plugin
   (`kde/kirigami/README.md`); new upstream features need to be merged by hand.
   GTK applications cannot request blur from KWin, so the GTK themes are opaque.

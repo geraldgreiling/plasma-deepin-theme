@@ -9,8 +9,11 @@
 #   * installs "Deepin-Glass-Translucent(-Dark)" with the opacities of deepinglassrc,
 #   * replaces KWin's blur effect with "Better Blur DX" (third party, AUR package
 #     kwin-effects-better-blur-dx), which also blurs behind windows it is told to,
-#   * tells it to blur the GTK applications found on this system,
-#   * selects the translucent GTK theme.
+#   * tells it to blur the GTK applications found on this system (including
+#     libadwaita and Flatpak applications),
+#   * selects the translucent GTK theme and installs the translucent libadwaita
+#     stylesheet as ~/.config/gtk-4.0/gtk.css (an existing foreign file is backed up),
+#   * lets Flatpak applications read that stylesheet.
 # Qt applications and the window decoration keep working: Better Blur DX handles
 # their blur requests like KWin's own effect.
 #
@@ -55,8 +58,10 @@ reload_kwin() {
 
 # Window classes of the installed GTK 3/4 applications. On Wayland KWin matches the
 # app id, usually the desktop file name; the binary name and StartupWMClass cover
-# X11 and older applications. libadwaita applications ignore GTK themes and stay
-# opaque, so they are left out.
+# X11 and older applications. libadwaita applications ignore GTK themes but load
+# the user stylesheet ~/.config/gtk-4.0/gtk.css, which gets the glass as well.
+# Flatpak applications cannot be inspected; their app ids are all added (blur
+# behind an opaque window costs a little GPU time but is invisible).
 gtk_classes() {
     local dirs=(/usr/share/applications "$DATA/applications")
     local f exe bin libs
@@ -68,11 +73,18 @@ gtk_classes() {
         [[ -n "$bin" && -f "$bin" ]] || continue
         libs="$(ldd "$bin" 2>/dev/null || true)"
         grep -q 'libgtk-[34]\.so' <<<"$libs" || continue
-        grep -q 'libadwaita-1\.so' <<<"$libs" && continue
         basename "$f" .desktop
         basename "$bin"
         grep -m1 '^StartupWMClass=' "$f" | sed 's/^StartupWMClass=//' || true
     done | sort -u || true
+    if command -v flatpak >/dev/null; then
+        flatpak list --app --columns=application 2>/dev/null || true
+    fi
+}
+
+LIBADWAITA_CSS="$CONF/gtk-4.0/gtk.css"
+is_our_stylesheet() {
+    [[ -f "$LIBADWAITA_CSS" ]] && grep -q 'Deepin Glass for libadwaita applications' "$LIBADWAITA_CSS"
 }
 
 # ------------------------------------------------------------------------ --list
@@ -87,7 +99,10 @@ if [[ "${1:-}" == --off ]]; then
     kwriteconfig6 --file kwinrc --group Plugins --key blurEnabled true
     reload_kwin off
     set_gtk_theme "$($dark && echo Deepin-Glass-Dark || echo Deepin-Glass)"
-    echo "KWin blur and the opaque GTK theme are active again. Restart GTK applications."
+    if is_our_stylesheet; then
+        cp gtk/libadwaita/gtk.css "$LIBADWAITA_CSS"
+    fi
+    echo "KWin blur and the opaque GTK themes are active again. Restart GTK applications."
     exit 0
 fi
 
@@ -117,6 +132,22 @@ for t in Deepin-Glass-Translucent Deepin-Glass-Translucent-Dark; do
         -e "s|0\.58 /\*deepinglass:inactive\*/|$inactive /*deepinglass:inactive*/|g" {} +
 done
 echo "   opacity $active (active) / $inactive (inactive), from ~/.config/deepinglassrc"
+
+echo ":: libadwaita stylesheet (~/.config/gtk-4.0/gtk.css)"
+mkdir -p "$CONF/gtk-4.0"
+if [[ -f "$LIBADWAITA_CSS" ]] && ! is_our_stylesheet; then
+    backup="$LIBADWAITA_CSS.bak-$(date +%Y%m%d%H%M%S)"
+    cp "$LIBADWAITA_CSS" "$backup"
+    echo "   your previous file is kept as $backup"
+fi
+sed -e "s|0\.72 /\*deepinglass:active\*/|$active /*deepinglass:active*/|g" \
+    -e "s|0\.58 /\*deepinglass:inactive\*/|$inactive /*deepinglass:inactive*/|g" \
+    gtk/libadwaita/gtk-glass.css >"$LIBADWAITA_CSS"
+if command -v flatpak >/dev/null; then
+    # read-only access to the stylesheet for all Flatpak applications
+    flatpak override --user --filesystem=xdg-config/gtk-4.0:ro
+    echo "   Flatpak applications may read it (flatpak override --user --filesystem=xdg-config/gtk-4.0:ro)"
+fi
 
 echo ":: GTK applications to blur"
 existing="$(kreadconfig6 --file kwinrc --group "$GROUP" --key WindowClasses 2>/dev/null || true)"

@@ -266,3 +266,21 @@ Kirigami-Plugin mit allen Standardwerten und Kommentaren angelegt (Vorlage
 * Getestet: einfaches `QMainWindow` und `QDialog` (jetzt Glas), dasselbe mit
   Wechsel auf Fusion wie G'MIC (deckend dunkel), Dolphin und Systemeinstellungen
   unverändert.
+
+## Ergänzung – Glas für libadwaita-Programme, Bewertung von libAdapta
+
+* `gtk/libadwaita/gtk-glass.css`: Variante des libadwaita-Stylesheets mit
+  transparenter Fensterfläche (Deckkraft der Titelleiste, `:backdrop` inaktiv),
+  Kopfleisten, Seitenleisten und Ansichten ohne eigene Schicht; Popover, Dialoge
+  und Menüs bleiben deckend. CSS-Variablen für libadwaita ≥ 1.6, benannte Farben
+  für ältere Versionen.
+* `tools/setup-gtk-glass.sh` installiert sie als `~/.config/gtk-4.0/gtk.css`
+  (fremde Datei wird gesichert), erlaubt Flatpaks das Lesen, nimmt libadwaita-
+  und Flatpak-Programme in die Blur-Liste auf; `--off` stellt das deckende
+  Stylesheet wieder her, wenn es unseres war.
+* Getestet mit `adwaita-1-demo` (libadwaita 1.9.1) in der Testumgebung, hell.
+* libAdapta (Linux Mint): Fork von libadwaita 1.5 mit Theme-Unterstützung
+  (Unterordner `libadapta-1.5` im GTK-Theme). Hilft nur Programmen, die gegen
+  libAdapta gebaut sind (eigene Bibliothek und eigener Namensraum), nicht den
+  libadwaita-Programmen von Arch/CachyOS; letzter Stand im Repository Juni 2025.
+  Daher nicht umgesetzt.

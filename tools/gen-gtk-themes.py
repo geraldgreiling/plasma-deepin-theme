@@ -284,7 +284,7 @@ def gtk_theme(lib, base_path, variant, asset_prefix, rules, kind, upstream, glas
 
 LIBADWAITA = """/*
  * Deepin Glass for libadwaita applications.
- * Copy to ~/.config/gtk-4.0/gtk.css (tools/install-gtk-libadwaita.sh does that).
+ * Copy to ~/.config/gtk-4.0/gtk.css (./install.sh --libadwaita does that).
  * libadwaita ignores GTK themes but loads this user stylesheet.
  * SPDX-FileCopyrightText: 2026 plasma-deepin-theme contributors
  * SPDX-License-Identifier: GPL-3.0-or-later
@@ -341,6 +341,49 @@ windowcontrols > button.close:hover > image { background-color: #ff5736; color: 
 """
 
 
+# Glass variant of the libadwaita stylesheet (tools/setup-gtk-glass.sh installs it,
+# together with a force-blur KWin effect). Only the window surface is painted, with
+# the title bar's opacity; header bars, sidebars and views add no layer, floating
+# parts (popovers, dialogs, menus) stay opaque. The marked values are replaced with
+# the opacities from deepinglassrc.
+LIBADWAITA_GLASS = """
+/* ------------------------------------------------ Deepin Glass: translucent window */
+:root {
+  --window-bg-color: rgba(248, 248, 248, 0.72 /*deepinglass:active*/);
+  --view-bg-color: transparent;
+  --headerbar-bg-color: transparent;
+  --headerbar-backdrop-color: transparent;
+  --headerbar-shade-color: rgba(0, 0, 0, 0.06);
+  --sidebar-bg-color: transparent;
+  --sidebar-backdrop-color: transparent;
+  --secondary-sidebar-bg-color: transparent;
+  --secondary-sidebar-backdrop-color: transparent;
+  --card-bg-color: rgba(255, 255, 255, 0.45);
+  --thumbnail-bg-color: rgba(255, 255, 255, 0.45);
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --window-bg-color: rgba(37, 37, 37, 0.72 /*deepinglass:active*/);
+    --headerbar-shade-color: rgba(0, 0, 0, 0.25);
+    --card-bg-color: rgba(255, 255, 255, 0.06);
+    --thumbnail-bg-color: rgba(255, 255, 255, 0.06);
+  }
+}
+window.background:backdrop { background-color: rgba(248, 248, 248, 0.58 /*deepinglass:inactive*/); }
+@media (prefers-color-scheme: dark) {
+  window.background:backdrop { background-color: rgba(37, 37, 37, 0.58 /*deepinglass:inactive*/); }
+}
+/* older libadwaita versions (< 1.6) use named colours */
+@define-color window_bg_color alpha(#f8f8f8, 0.72 /*deepinglass:active*/);
+@define-color view_bg_color transparent;
+@define-color headerbar_bg_color transparent;
+@define-color headerbar_backdrop_color transparent;
+@define-color sidebar_bg_color transparent;
+@define-color secondary_sidebar_bg_color transparent;
+@define-color card_bg_color alpha(#ffffff, 0.45);
+"""
+
+
 def main():
     out = sys.argv[1] if len(sys.argv) > 1 else os.path.join(os.path.dirname(__file__), '..', 'gtk')
     themes = {
@@ -380,6 +423,10 @@ ButtonLayout=:minimize,maximize,close
     os.makedirs(os.path.join(out, 'libadwaita'), exist_ok=True)
     with open(os.path.join(out, 'libadwaita', 'gtk.css'), 'w') as fh:
         fh.write(LIBADWAITA)
+    with open(os.path.join(out, 'libadwaita', 'gtk-glass.css'), 'w') as fh:
+        fh.write(LIBADWAITA.replace('Copy to ~/.config/gtk-4.0/gtk.css (./install.sh --libadwaita does that).',
+                                    'Glass variant, installed by tools/setup-gtk-glass.sh as ~/.config/gtk-4.0/gtk.css.')
+                 + LIBADWAITA_GLASS)
     print('GTK themes written to', out)
 
 
