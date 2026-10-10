@@ -254,5 +254,15 @@ Kirigami-Plugin mit allen Standardwerten und Kommentaren angelegt (Vorlage
   war komplett durchsichtig. Wird der Stil ersetzt, macht Deepin Glass das
   Fenster jetzt wieder deckend (Prüfung über einen privaten Style-Hint, damit
   Style-Sheets, die den Stil nur umhüllen, das Glas nicht abschalten).
-* Beobachtung: Einfache `QMainWindow`-Programme ohne KDE-Frameworks erzeugen ihr
-  natives Fenster, bevor der Stil gefragt wird, und bleiben deshalb deckend.
+* Einfache Qt-Programme ohne KDE-Frameworks erzeugen ihr natives Fenster, bevor
+  der Stil gefragt wird, und blieben deshalb deckend. Jetzt macht ein
+  anwendungsweiter Event-Filter Haupt- und Dialogfenster beim ersten
+  Kind-Widget transparent (also noch im Konstruktor; die Prüfung des
+  zentralen Widgets folgt beim Polish, ein deckender Inhalt macht das Fenster
+  dann wieder deckend).
+* Der Schutz gegen Stilwechsel sitzt jetzt als kleines Objekt am Fenster selbst
+  (`GlassGuard`), weil Qt den alten Stil beim Wechsel löscht und noch nicht
+  gepolishte Fenster nicht unpolisht. Er prüft bei Show und StyleChange.
+* Getestet: einfaches `QMainWindow` und `QDialog` (jetzt Glas), dasselbe mit
+  Wechsel auf Fusion wie G'MIC (deckend dunkel), Dolphin und Systemeinstellungen
+  unverändert.

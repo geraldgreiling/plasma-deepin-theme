@@ -40,6 +40,7 @@
 #include <QWindow>
 
 #include <cmath>
+#include <functional>
 
 namespace DeepinGlass
 {
@@ -127,9 +128,92 @@ bool Style::compositingActive() const
     return false;
 }
 
+namespace
+{
+// Plain Qt applications create the native window of their main window before the
+// style is asked anything about it (QWidget::setVisible() creates, then polishes),
+// which is too late for an alpha channel. Almost every window gets its children
+// before it is shown, so ChildAdded is the earliest reliable moment.
+class EarlyWindowFilter : public QObject
+{
+public:
+    EarlyWindowFilter(Style *style, std::function<void(const QWidget *)> prepare)
+        : QObject(style)
+        , m_prepare(std::move(prepare))
+    {
+    }
+
+protected:
+    bool eventFilter(QObject *object, QEvent *event) override
+    {
+        if (event->type() == QEvent::ChildAdded && object->isWidgetType()) {
+            auto widget = static_cast<QWidget *>(object);
+            if (widget->isWindow() && !widget->testAttribute(Qt::WA_WState_Created)) {
+                m_prepare(widget);
+            }
+        }
+        return false;
+    }
+
+private:
+    std::function<void(const QWidget *)> m_prepare;
+};
+// Lives on a translucent window (not on the style, which an application may delete
+// by switching styles): if the window ends up painted by another style, which
+// paints no glass, it is made opaque again instead of staying fully transparent.
+class GlassGuard : public QObject
+{
+public:
+    explicit GlassGuard(QWidget *window)
+        : QObject(window)
+    {
+        window->installEventFilter(this);
+    }
+
+    static bool styleIsDeepinGlass(const QWidget *window)
+    {
+        return window->style()->styleHint(QStyle::StyleHint(Style::SH_DeepinGlassActive), nullptr, window) == Style::DeepinGlassMagic;
+    }
+
+protected:
+    bool eventFilter(QObject *object, QEvent *event) override
+    {
+        if (event->type() == QEvent::Show || event->type() == QEvent::StyleChange) {
+            auto window = static_cast<QWidget *>(object);
+            if (window->testAttribute(Qt::WA_TranslucentBackground) && !styleIsDeepinGlass(window)) {
+                // after the current event: the style switch may still be in progress
+                QPointer<QWidget> guarded(window);
+                QTimer::singleShot(0, window, [guarded] {
+                    if (guarded && !styleIsDeepinGlass(guarded)) {
+                        Style::makeOpaque(guarded);
+                    }
+                });
+            }
+        }
+        return false;
+    }
+};
+} // namespace
+
 void Style::polish(QApplication *app)
 {
     QProxyStyle::polish(app);
+    if (!m_excludedApplication && !m_earlyWindowFilter) {
+        m_earlyWindowFilter = new EarlyWindowFilter(this, [this](const QWidget *widget) {
+            tryMakeTranslucent(widget, true);
+        });
+        app->installEventFilter(m_earlyWindowFilter);
+    }
+}
+
+void Style::unpolish(QApplication *app)
+{
+    if (m_earlyWindowFilter) {
+        app->removeEventFilter(m_earlyWindowFilter);
+        delete m_earlyWindowFilter;
+        m_earlyWindowFilter = nullptr;
+    }
+    QProxyStyle::unpolish(app);
 }
 
 void Style::polish(QPalette &palette)
@@ -151,7 +235,7 @@ void Style::polish(QPalette &palette)
 //____________________________________________________________________________
 // Translucent windows
 
-void Style::tryMakeTranslucent(const QWidget *constWidget) const
+void Style::tryMakeTranslucent(const QWidget *constWidget, bool early) const
 {
     if (!constWidget || m_excludedApplication || !constWidget->isWindow()) {
         return;
@@ -192,7 +276,9 @@ void Style::tryMakeTranslucent(const QWidget *constWidget) const
         if (mw->styleSheet().contains(QLatin1String("background"))) {
             return;
         }
-        if (QWidget *cw = mw->centralWidget(); cw && (cw->autoFillBackground() || cw->styleSheet().contains(QLatin1String("background")))) {
+        // early: possibly still inside the QMainWindow constructor, where centralWidget()
+        // is not usable yet; polish() checks the central widget later
+        if (!early && hasOpaqueCentralWidget(mw)) {
             return;
         }
     }
@@ -202,11 +288,28 @@ void Style::tryMakeTranslucent(const QWidget *constWidget) const
 
     // Before the native window is created this also gives the window an alpha channel.
     widget->setAttribute(Qt::WA_TranslucentBackground);
+    new GlassGuard(widget);
     m_translucentWindows.insert(widget);
     widget->installEventFilter(const_cast<Style *>(this));
     connect(widget, &QObject::destroyed, this, [this, widget] {
         m_translucentWindows.remove(widget);
     });
+}
+
+bool Style::hasOpaqueCentralWidget(const QMainWindow *window)
+{
+    const QWidget *cw = window->centralWidget();
+    return cw && (cw->autoFillBackground() || cw->styleSheet().contains(QLatin1String("background")));
+}
+
+void Style::makeOpaque(QWidget *window)
+{
+    window->setAttribute(Qt::WA_TranslucentBackground, false);
+    window->setAttribute(Qt::WA_NoSystemBackground, false);
+    if (window->windowHandle()) {
+        KWindowEffects::enableBlurBehind(window->windowHandle(), false);
+    }
+    window->update();
 }
 
 bool Style::isTranslucentWindow(const QWidget *widget) const
@@ -397,6 +500,12 @@ void Style::polish(QWidget *widget)
         return;
     }
     tryMakeTranslucent(widget);
+    if (auto mw = qobject_cast<QMainWindow *>(widget); mw && isTranslucentWindow(mw) && hasOpaqueCentralWidget(mw)) {
+        // made translucent early (see EarlyWindowFilter), but the content is opaque
+        m_translucentWindows.remove(mw);
+        mw->removeEventFilter(this);
+        makeOpaque(mw);
+    }
     QProxyStyle::polish(widget);
 
     if (m_excludedApplication || !compositingActive()) {
@@ -448,25 +557,6 @@ void Style::unpolish(QWidget *widget)
 {
     if (widget && (isTranslucentWindow(widget) || qobject_cast<QMenu *>(widget) || widget->inherits("QQuickWidget"))) {
         widget->removeEventFilter(this);
-    }
-    if (isTranslucentWindow(widget)) {
-        // Unpolished because the application switches to another style (e.g. G'MIC-Qt
-        // to Fusion for its dark theme) or because a style sheet wraps this style.
-        // The other style paints no glass, so the window would end up fully
-        // transparent: make it opaque again unless this style is still in charge.
-        // Checked once the switch is done; this style may be deleted by then.
-        QPointer<QWidget> window(widget);
-        QTimer::singleShot(0, widget, [window] {
-            if (!window || window->style()->styleHint(StyleHint(SH_DeepinGlassActive), nullptr, window) == DeepinGlassMagic) {
-                return;
-            }
-            window->setAttribute(Qt::WA_TranslucentBackground, false);
-            window->setAttribute(Qt::WA_NoSystemBackground, false);
-            if (window->windowHandle()) {
-                KWindowEffects::enableBlurBehind(window->windowHandle(), false);
-            }
-            window->update();
-        });
     }
     QProxyStyle::unpolish(widget);
 }

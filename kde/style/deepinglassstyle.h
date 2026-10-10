@@ -12,6 +12,8 @@
 #include <QStyleOption>
 #include <QSet>
 
+class QMainWindow;
+
 namespace DeepinGlass
 {
 
@@ -38,6 +40,7 @@ public:
     void polish(QWidget *widget) override;
     void polish(QPalette &palette) override;
     void polish(QApplication *app) override;
+    void unpolish(QApplication *app) override;
     void unpolish(QWidget *widget) override;
     using QProxyStyle::polish;
     using QProxyStyle::unpolish;
@@ -49,15 +52,21 @@ public:
     void drawControl(ControlElement element, const QStyleOption *option, QPainter *painter, const QWidget *widget = nullptr) const override;
     void drawComplexControl(ComplexControl control, const QStyleOptionComplex *option, QPainter *painter, const QWidget *widget = nullptr) const override;
 
+    /// private style hint: answered with DeepinGlassMagic while this style is in use
+    /// (style sheet styles forward unknown hints to the style they wrap)
+    static constexpr int SH_DeepinGlassActive = SH_CustomBase + 0x4447;
+    static constexpr int DeepinGlassMagic = 0x44474c53;
+    /// undo the translucency of a window whose native window exists already
+    static void makeOpaque(QWidget *window);
+
 protected:
     bool eventFilter(QObject *object, QEvent *event) override;
 
 private:
-    /// private style hint: answered with DeepinGlassMagic while this style is in use
-    static constexpr int SH_DeepinGlassActive = SH_CustomBase + 0x4447;
-    static constexpr int DeepinGlassMagic = 0x44474c53;
     /// Make a top level window translucent. Must happen before the native window exists.
-    void tryMakeTranslucent(const QWidget *widget) const;
+    void tryMakeTranslucent(const QWidget *widget, bool early = false) const;
+    static bool hasOpaqueCentralWidget(const QMainWindow *window);
+
     bool isTranslucentWindow(const QWidget *widget) const;
     bool compositingActive() const;
     void updateBlur(QWidget *widget) const;
@@ -78,6 +87,7 @@ private:
     DecorationConfig m_decoConfig;
     bool m_excludedApplication = false;
     mutable QSet<const QWidget *> m_translucentWindows;
+    QObject *m_earlyWindowFilter = nullptr;
 };
 
 } // namespace DeepinGlass
