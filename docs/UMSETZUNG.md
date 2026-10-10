@@ -234,3 +234,14 @@ Kirigami-Plugin mit allen Standardwerten und Kommentaren angelegt (Vorlage
 * Getestet: GTK-3/4-Widget-Factory mit den transparenten Themes (hell/dunkel) in
   der Testumgebung, Setup-Skript gegen ein Test-Home. Better Blur DX selbst ließ
   sich dort nicht testen (KWin ohne GPU).
+
+## Ergänzung – Status-Icons folgen dem Farbschema
+
+* Deepin zeichnet seine Status-Icons in fester Farbe (teils weiß, teils schwarz),
+  im hellen Dock waren deshalb einige Tray-Icons weiß. `tools/build-icon-themes.py`
+  macht einfarbige Status- und `-symbolic`-Icons (ohne Verläufe/Bitmaps) über das
+  KDE-Stylesheet `current-color-scheme` umfärbbar (`currentColor` +
+  `ColorScheme-Text`); Plasma setzt die Textfarbe des Docks ein, hell wie dunkel.
+  Rund 460 Icons sind betroffen.
+* Geprüft im Dock der Testsitzung (hell und dunkel) am Aufklapp-Pfeil, der vorher
+  weiß war; Lautstärke- und Netzwerk-Icons gibt es dort nicht.

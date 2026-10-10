@@ -162,6 +162,56 @@ def add_aliases(theme_dir):
     return created
 
 
+COLOR_RE = re.compile(r'((?:fill|stroke)(?:="|:\s*))(#[0-9a-fA-F]{6}|#[0-9a-fA-F]{3})\b')
+TAG_RE = re.compile(r'<([a-zA-Z][\w:-]*)\b([^>]*?)(/?)>')
+
+
+def make_recolorable(theme_dir, text_color):
+    """Monochrome status and symbolic icons follow the colour scheme.
+
+    Deepin draws its status icons for its own dock in a fixed colour: some white,
+    some black, so in a light Plasma panel part of the tray was white. KDE recolours
+    icons that use the "current-color-scheme" stylesheet: every element painted in
+    the single icon colour gets currentColor and the ColorScheme-Text class, and
+    Plasma/KIconLoader insert the text colour of the surrounding colour set (light
+    or dark panel, selection). text_color is the fallback for other consumers.
+    """
+    changed = 0
+    for root, _, files in os.walk(theme_dir):
+        category = os.path.relpath(root, theme_dir).split(os.sep)[0]
+        for name in files:
+            path = os.path.join(root, name)
+            if not name.endswith('.svg') or os.path.islink(path):
+                continue
+            if category != 'status' and not name.endswith('-symbolic.svg'):
+                continue
+            with open(path, encoding='utf-8', errors='replace') as fh:
+                svg = fh.read()
+            if 'url(#' in svg or '<image' in svg or 'ColorScheme-' in svg:
+                continue  # gradients, bitmaps, already recolourable
+            colors = {c.lower() for _, c in COLOR_RE.findall(svg)}
+            if len(colors) != 1:
+                continue  # coloured icons stay as they are
+
+            def tag(m):
+                element, attrs, close = m.groups()
+                if not COLOR_RE.search(attrs):
+                    return m.group(0)
+                attrs = COLOR_RE.sub(lambda c: c.group(1) + 'currentColor', attrs)
+                if ' class=' not in attrs:
+                    attrs += ' class="ColorScheme-Text"'
+                return f'<{element}{attrs}{close}>'
+
+            svg = TAG_RE.sub(tag, svg)
+            style = ('<style id="current-color-scheme" type="text/css">'
+                     f'.ColorScheme-Text {{ color:{text_color}; }}</style>')
+            svg = re.sub(r'(<svg\b[^>]*>)', lambda m: m.group(1) + style, svg, count=1)
+            with open(path, 'w', encoding='utf-8') as fh:
+                fh.write(svg)
+            changed += 1
+    return changed
+
+
 def build_icons(src, out):
     icons = os.path.join(out, 'icons')
     os.makedirs(icons, exist_ok=True)
@@ -174,10 +224,11 @@ def build_icons(src, out):
     copy_theme(os.path.join(src, 'bloom-dark'), dark)
     write_index(os.path.join(dark, 'index.theme'), 'Deepin Bloom Dark',
                 'Deepin bloom icons, dark variant (from linuxdeepin/deepin-icon-theme)', 'Deepin-Bloom,breeze-dark,hicolor')
+    recoloured = make_recolorable(light, '#252525') + make_recolorable(dark, '#dedede')
     for theme in (light, dark):
         declare_missing_directories(theme)
         shutil.copy(os.path.join(src, 'LICENSES', 'GPL-3.0-or-later.txt'), os.path.join(theme, 'LICENSE'))
-    print(f'icons: {light} (+{n} KDE aliases), {dark}')
+    print(f'icons: {light} (+{n} KDE aliases, {recoloured} recolourable status icons), {dark}')
 
 
 # --------------------------------------------------------------------------- cursors
