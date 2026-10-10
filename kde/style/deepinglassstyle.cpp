@@ -35,6 +35,7 @@
 #include <QQuickWindow>
 #include <QStyleFactory>
 #include <QStyleOption>
+#include <QTimer>
 #include <QToolBar>
 #include <QWindow>
 
@@ -448,11 +449,33 @@ void Style::unpolish(QWidget *widget)
     if (widget && (isTranslucentWindow(widget) || qobject_cast<QMenu *>(widget) || widget->inherits("QQuickWidget"))) {
         widget->removeEventFilter(this);
     }
+    if (isTranslucentWindow(widget)) {
+        // Unpolished because the application switches to another style (e.g. G'MIC-Qt
+        // to Fusion for its dark theme) or because a style sheet wraps this style.
+        // The other style paints no glass, so the window would end up fully
+        // transparent: make it opaque again unless this style is still in charge.
+        // Checked once the switch is done; this style may be deleted by then.
+        QPointer<QWidget> window(widget);
+        QTimer::singleShot(0, widget, [window] {
+            if (!window || window->style()->styleHint(StyleHint(SH_DeepinGlassActive), nullptr, window) == DeepinGlassMagic) {
+                return;
+            }
+            window->setAttribute(Qt::WA_TranslucentBackground, false);
+            window->setAttribute(Qt::WA_NoSystemBackground, false);
+            if (window->windowHandle()) {
+                KWindowEffects::enableBlurBehind(window->windowHandle(), false);
+            }
+            window->update();
+        });
+    }
     QProxyStyle::unpolish(widget);
 }
 
 int Style::styleHint(StyleHint hint, const QStyleOption *option, const QWidget *widget, QStyleHintReturn *returnData) const
 {
+    if (hint == StyleHint(SH_DeepinGlassActive)) {
+        return DeepinGlassMagic; // see unpolish(); style sheet styles forward unknown hints
+    }
     // styleHint() is queried while widgets are constructed, i.e. before their native
     // window exists. That is the only point where WA_TranslucentBackground still works.
     tryMakeTranslucent(widget);

@@ -53,6 +53,9 @@ protected:
     bool eventFilter(QObject *object, QEvent *event) override;
 
 private:
+    /// private style hint: answered with DeepinGlassMagic while this style is in use
+    static constexpr int SH_DeepinGlassActive = SH_CustomBase + 0x4447;
+    static constexpr int DeepinGlassMagic = 0x44474c53;
     /// Make a top level window translucent. Must happen before the native window exists.
     void tryMakeTranslucent(const QWidget *widget) const;
     bool isTranslucentWindow(const QWidget *widget) const;

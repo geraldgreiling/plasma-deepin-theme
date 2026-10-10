@@ -245,3 +245,14 @@ Kirigami-Plugin mit allen Standardwerten und Kommentaren angelegt (Vorlage
   Rund 460 Icons sind betroffen.
 * Geprüft im Dock der Testsitzung (hell und dunkel) am Aufklapp-Pfeil, der vorher
   weiß war; Lautstärke- und Netzwerk-Icons gibt es dort nicht.
+
+## Ergänzung – Programme, die den Stil wechseln
+
+* Programme wie G'MIC-Qt schalten nach dem Anlegen ihres Fensters selbst auf
+  Fusion mit dunkler Palette um (G'MIC-Einstellung „Dunkles Thema“). Das Fenster
+  war da schon transparent gemacht, Fusion zeichnet aber kein Glas: der Inhalt
+  war komplett durchsichtig. Wird der Stil ersetzt, macht Deepin Glass das
+  Fenster jetzt wieder deckend (Prüfung über einen privaten Style-Hint, damit
+  Style-Sheets, die den Stil nur umhüllen, das Glas nicht abschalten).
+* Beobachtung: Einfache `QMainWindow`-Programme ohne KDE-Frameworks erzeugen ihr
+  natives Fenster, bevor der Stil gefragt wird, und bleiben deshalb deckend.
