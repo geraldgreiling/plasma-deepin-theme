@@ -120,7 +120,9 @@ applications it finds to the effect's force-blur list and selects
 *Deepin-Glass-Translucent* with the opacities from `deepinglassrc`. Run it again
 after installing GTK applications; `tools/setup-gtk-glass.sh --off` undoes it.
 Better Blur DX is built for one exact KWin version and must be rebuilt after KWin
-updates.
+updates (`paru -S kwin-effects-better-blur-dx --rebuild`). Until then it does not
+load; an autostart entry installed by the script then loads KWin's own blur for
+the session and shows a notification, so only GTK applications lose their blur.
 
 libadwaita applications ignore GTK themes; they get the glass through the user
 stylesheet `~/.config/gtk-4.0/gtk.css` (`gtk/libadwaita/gtk-glass.css`, installed

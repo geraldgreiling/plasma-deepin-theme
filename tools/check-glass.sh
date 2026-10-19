@@ -27,7 +27,10 @@ echo "Einstellungen"
 if [[ -f "$CONF/deepinglassrc" ]]; then
     ok "$CONF/deepinglassrc, ConfigVersion=$(kreadconfig6 --file deepinglassrc --group General --key ConfigVersion --default 1 2>/dev/null)"
     info "Style: $(kreadconfig6 --file kdeglobals --group KDE --key widgetStyle 2>/dev/null)   Dekoration: $(kreadconfig6 --file kwinrc --group org.kde.kdecoration2 --key library 2>/dev/null)"
-    info "Blur-Effekt: $(kreadconfig6 --file kwinrc --group Plugins --key blurEnabled --default true 2>/dev/null)"
+    info "Blur-Effekt (kwinrc): blur=$(kreadconfig6 --file kwinrc --group Plugins --key blurEnabled --default true 2>/dev/null)  better_blur_dx=$(kreadconfig6 --file kwinrc --group Plugins --key better_blur_dxEnabled --default false 2>/dev/null)"
+    loaded="$(qdbus6 org.kde.KWin /Effects org.kde.kwin.Effects.loadedEffects 2>/dev/null | grep -x 'blur\|better_blur_dx' | tr '\n' ' ')"
+    if [[ -n "$loaded" ]]; then ok "geladener Blur-Effekt: $loaded"; else bad "kein Blur-Effekt geladen  ->  tools/setup-gtk-glass.sh --off  oder Better Blur DX neu bauen"; fi
+    command -v pacman >/dev/null && info "Pakete: $(pacman -Q kwin kwin-effects-better-blur-dx 2>/dev/null | tr '\n' ' ')"
 else
     bad "$CONF/deepinglassrc"
 fi

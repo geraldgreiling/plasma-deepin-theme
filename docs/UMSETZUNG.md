@@ -284,3 +284,13 @@ Kirigami-Plugin mit allen Standardwerten und Kommentaren angelegt (Vorlage
   libAdapta gebaut sind (eigene Bibliothek und eigener Namensraum), nicht den
   libadwaita-Programmen von Arch/CachyOS; letzter Stand im Repository Juni 2025.
   Daher nicht umgesetzt.
+
+## Ergänzung – Blur fällt nach KWin-Updates aus
+
+* Better Blur DX lädt nach einem KWin-Update nicht mehr, bis es neu gebaut ist.
+  Weil `setup-gtk-glass.sh` KWins Blur dafür abschaltet, hatte dann kein Fenster
+  mehr Blur (nur Transparenz). Neu: Autostart-Eintrag
+  `~/.config/autostart/deepinglass-blur-check.desktop` (`tools/blur-fallback.sh`)
+  prüft beim Anmelden, ob `better_blur_dx` geladen ist, lädt sonst KWins `blur`
+  für die Sitzung und zeigt eine Benachrichtigung. `check-glass.sh` zeigt die
+  geladenen Blur-Effekte und die Paketversionen von kwin und Better Blur DX.

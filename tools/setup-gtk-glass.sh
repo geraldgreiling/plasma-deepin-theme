@@ -82,6 +82,9 @@ gtk_classes() {
     fi
 }
 
+AUTOSTART="$CONF/autostart/deepinglass-blur-check.desktop"
+FALLBACK="$DATA/deepinglass/blur-fallback.sh"
+
 LIBADWAITA_CSS="$CONF/gtk-4.0/gtk.css"
 is_our_stylesheet() {
     [[ -f "$LIBADWAITA_CSS" ]] && grep -q 'Deepin Glass for libadwaita applications' "$LIBADWAITA_CSS"
@@ -102,6 +105,7 @@ if [[ "${1:-}" == --off ]]; then
     if is_our_stylesheet; then
         cp gtk/libadwaita/gtk.css "$LIBADWAITA_CSS"
     fi
+    rm -f "$AUTOSTART" "$FALLBACK"
     echo "KWin blur and the opaque GTK themes are active again. Restart GTK applications."
     exit 0
 fi
@@ -167,6 +171,28 @@ kwriteconfig6 --file kwinrc --group "$GROUP" --key CornerRadius "$radius"
 kwriteconfig6 --file kwinrc --group Plugins --key blurEnabled false
 kwriteconfig6 --file kwinrc --group Plugins --key better_blur_dxEnabled true
 reload_kwin on
+
+# after KWin updates Better Blur DX does not load until it is rebuilt: fall back
+# to KWin's blur at login instead of losing all blur
+mkdir -p "$(dirname "$FALLBACK")" "$(dirname "$AUTOSTART")"
+cp tools/blur-fallback.sh "$FALLBACK"
+chmod +x "$FALLBACK"
+cat >"$AUTOSTART" <<DESKTOP
+[Desktop Entry]
+Type=Application
+Name=Deepin Glass blur check
+Comment=Falls back to KWin's blur effect when Better Blur DX does not match the installed KWin
+Exec=$FALLBACK
+NoDisplay=true
+X-KDE-autostart-phase=2
+DESKTOP
+if ! qdbus6 org.kde.KWin /Effects org.kde.kwin.Effects.loadedEffects 2>/dev/null | grep -qx better_blur_dx; then
+    if qdbus6 org.kde.KWin /KWin >/dev/null 2>&1; then
+        echo "   WARNING: Better Blur DX did not load (built for another KWin version?)."
+        echo "   KWin's blur is used for now; rebuild kwin-effects-better-blur-dx and log in again."
+        qdbus6 org.kde.KWin /Effects org.kde.kwin.Effects.loadEffect blur >/dev/null 2>&1 || true
+    fi
+fi
 
 echo ":: GTK theme"
 theme="$($dark && echo Deepin-Glass-Translucent-Dark || echo Deepin-Glass-Translucent)"
