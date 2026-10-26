@@ -6,9 +6,36 @@
 # blurred (Better Blur DX setup of tools/setup-gtk-glass.sh). Click the affected
 # window when asked. The report is written next to this checkout:
 #   ../gtk-glass-diag.txt
+#
+#   tools/diag-gtk-glass.sh --debug-on    let KWin log what Better Blur DX does
+#                                         (takes effect after logging in again)
+#   tools/diag-gtk-glass.sh --debug-off   switch that off again
 cd "$(dirname "${BASH_SOURCE[0]}")/.." || exit 1
 OUT="$(cd .. && pwd)/gtk-glass-diag.txt"
 CONF="${XDG_CONFIG_HOME:-$HOME/.config}"
+RULES="$CONF/QtProject/qtlogging.ini"
+RULE="kwin_effect_better_blur_dx*.debug=true"
+
+case "${1:-}" in
+--debug-on)
+    mkdir -p "$(dirname "$RULES")"
+    if ! grep -qF "$RULE" "$RULES" 2>/dev/null; then
+        if grep -q '^\[Rules\]' "$RULES" 2>/dev/null; then
+            sed -i "/^\[Rules\]/a $RULE" "$RULES"
+        else
+            printf '[Rules]\n%s\n' "$RULE" >>"$RULES"
+        fi
+    fi
+    echo "Debug output of Better Blur DX is on. Log out and in, start the affected"
+    echo "application and one that is blurred correctly, then run tools/diag-gtk-glass.sh"
+    exit 0
+    ;;
+--debug-off)
+    [[ -f "$RULES" ]] && sed -i "\|^${RULE//\*/\\*}\$|d" "$RULES"
+    echo "Debug output of Better Blur DX is off (after logging in again)."
+    exit 0
+    ;;
+esac
 
 section() { printf '\n===== %s\n' "$*"; }
 
@@ -48,7 +75,8 @@ qdbus6 org.kde.KWin /KWin org.kde.KWin.queryWindowInfo >>"$OUT" 2>&1
 
 {
     section "KWin log (blur)"
-    journalctl --user -b --no-pager 2>/dev/null | grep -iE 'better.?blur|bbdx|blur' | tail -n 40
+    grep -F "$RULE" "$RULES" >/dev/null 2>&1 && echo "(debug output is on)"
+    journalctl --user -b --no-pager -o cat 2>/dev/null | grep -iE -A8 'better_blur_dx' | tail -n 400
 } >>"$OUT" 2>&1
 
 echo "Report written to $OUT"
