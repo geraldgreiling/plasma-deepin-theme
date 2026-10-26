@@ -294,3 +294,17 @@ Kirigami-Plugin mit allen Standardwerten und Kommentaren angelegt (Vorlage
   prüft beim Anmelden, ob `better_blur_dx` geladen ist, lädt sonst KWins `blur`
   für die Sitzung und zeigt eine Benachrichtigung. `check-glass.sh` zeigt die
   geladenen Blur-Effekte und die Paketversionen von kwin und Better Blur DX.
+
+## Ergänzung – interpretierte GTK-Programme (virt-manager)
+
+* virt-manager (Python, GTK 3) wurde von `setup-gtk-glass.sh` nicht gefunden:
+  `/usr/bin/virt-manager` ist ein Skript (kein `ldd`), und KWin kennt das Fenster
+  unter der Wayland-App-ID `org.virt-manager.virt-manager`, nicht unter dem
+  Namen der Desktop-Datei. Das Fenster war deshalb transparent, aber ohne Blur.
+* Für Skripte durchsucht das Setup jetzt die Dateien des zugehörigen Pakets
+  (pacman, dpkg oder rpm) nach GTK/libadwaita (`require_version("Gtk"…)`, GJS-
+  Importe) und nach der registrierten `application_id`, die in die Liste kommt.
+* `--pick`: fügt ein Fenster per Klick hinzu (KWin `queryWindowInfo`), für
+  Programme, die die Suche nicht findet.
+* Getestet in der Testumgebung (Ubuntu, dpkg): virt-manager wird mit
+  `org.virt-manager.virt-manager` erkannt.

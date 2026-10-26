@@ -119,6 +119,8 @@ requests of the decoration and the Qt applications as well), adds the GTK
 applications it finds to the effect's force-blur list and selects
 *Deepin-Glass-Translucent* with the opacities from `deepinglassrc`. Run it again
 after installing GTK applications; `tools/setup-gtk-glass.sh --off` undoes it.
+A window that is transparent but not blurred is missing from the blur list:
+`tools/setup-gtk-glass.sh --pick` adds it by clicking on it.
 Better Blur DX is built for one exact KWin version and must be rebuilt after KWin
 updates (`paru -S kwin-effects-better-blur-dx --rebuild`). Until then it does not
 load; an autostart entry installed by the script then loads KWin's own blur for

@@ -20,6 +20,7 @@
 #   tools/setup-gtk-glass.sh            set up (again, e.g. after installing GTK apps)
 #   tools/setup-gtk-glass.sh --off      back to KWin's blur and the opaque GTK theme
 #   tools/setup-gtk-glass.sh --list     only print the GTK applications that would be blurred
+#   tools/setup-gtk-glass.sh --pick     add a window by clicking it (not found by the search)
 set -euo pipefail
 cd "$(dirname "${BASH_SOURCE[0]}")/.."
 DATA="${XDG_DATA_HOME:-$HOME/.local/share}"
@@ -62,6 +63,34 @@ reload_kwin() {
 # the user stylesheet ~/.config/gtk-4.0/gtk.css, which gets the glass as well.
 # Flatpak applications cannot be inspected; their app ids are all added (blur
 # behind an opaque window costs a little GPU time but is invisible).
+# Files of the package that owns $1 (pacman, dpkg or rpm), else the file itself.
+package_files() {
+    local pkg
+    if command -v pacman >/dev/null && pkg="$(pacman -Qoq "$1" 2>/dev/null)"; then
+        pacman -Qlq "$pkg" 2>/dev/null
+    elif command -v dpkg >/dev/null && pkg="$(dpkg -S "$1" 2>/dev/null | head -n1 | cut -d: -f1)" && [[ -n "$pkg" ]]; then
+        dpkg -L "$pkg" 2>/dev/null
+    elif command -v rpm >/dev/null && pkg="$(rpm -qf "$1" 2>/dev/null)"; then
+        rpm -ql "$pkg" 2>/dev/null
+    else
+        echo "$1"
+    fi
+}
+
+# For a script: succeeds if its package uses GTK 3/4 and prints the application
+# ids found in its sources.
+script_app_ids() {
+    local sources
+    sources="$(package_files "$1" | grep -E '\.(py|js)$|^/usr/bin/' | head -n 2000)"
+    [[ -n "$sources" ]] || return 1
+    local uses_gtk
+    uses_gtk="$(xargs -d '\n' grep -lE "require_version\(['\"](Gtk|Adw)['\"]|imports\.gi\.(Gtk|Adw)|from ['\"]gi://(Gtk|Adw)" <<<"$sources" 2>/dev/null || true)"
+    [[ -n "$uses_gtk" ]] || return 1
+    xargs -d '\n' grep -ohE "application_id *= *['\"][A-Za-z][A-Za-z0-9_.-]+['\"]|application_id: *['\"][A-Za-z][A-Za-z0-9_.-]+['\"]" <<<"$sources" 2>/dev/null \
+        | sed -E "s/.*['\"]([^'\"]+)['\"].*/\1/" | grep '\.' || true
+    return 0
+}
+
 gtk_classes() {
     local dirs=(/usr/share/applications "$DATA/applications")
     local f exe bin libs
@@ -71,8 +100,15 @@ gtk_classes() {
         [[ -n "$exe" ]] || continue
         bin="$(command -v "$exe" 2>/dev/null || true)"
         [[ -n "$bin" && -f "$bin" ]] || continue
-        libs="$(ldd "$bin" 2>/dev/null || true)"
-        grep -q 'libgtk-[34]\.so' <<<"$libs" || continue
+        if [[ "$(head -c 2 "$bin" 2>/dev/null)" == '#!' ]]; then
+            # interpreted application (Python, GJS: e.g. virt-manager): look into the
+            # files of its package for GTK and for the application id it registers,
+            # which is the Wayland app id KWin matches (often not the desktop name)
+            script_app_ids "$bin" || continue
+        else
+            libs="$(ldd "$bin" 2>/dev/null || true)"
+            grep -q 'libgtk-[34]\.so' <<<"$libs" || continue
+        fi
         basename "$f" .desktop
         basename "$bin"
         grep -m1 '^StartupWMClass=' "$f" | sed 's/^StartupWMClass=//' || true
@@ -89,6 +125,24 @@ LIBADWAITA_CSS="$CONF/gtk-4.0/gtk.css"
 is_our_stylesheet() {
     [[ -f "$LIBADWAITA_CSS" ]] && grep -q 'Deepin Glass for libadwaita applications' "$LIBADWAITA_CSS"
 }
+
+# ------------------------------------------------------------------------ --pick
+# Add one window by clicking it (for applications the search does not find).
+if [[ "${1:-}" == --pick ]]; then
+    echo "Click the window that should get the glass ..."
+    info="$(qdbus6 org.kde.KWin /KWin org.kde.KWin.queryWindowInfo 2>/dev/null || true)"
+    class="$(sed -n 's/^resourceClass: //p' <<<"$info" | head -n1)"
+    if [[ -z "$class" ]]; then
+        echo "No window selected." >&2
+        exit 1
+    fi
+    existing="$(kreadconfig6 --file kwinrc --group "$GROUP" --key WindowClasses 2>/dev/null || true)"
+    classes="$( { echo "$existing"; echo "$class"; } | grep -vx 'class[123]' | grep -v '^$' | sort -u)"
+    kwriteconfig6 --file kwinrc --group "$GROUP" --key WindowClasses "$classes"
+    qdbus6 org.kde.KWin /KWin reconfigure >/dev/null 2>&1 || true
+    echo "Added \"$class\". Restart the application if the blur does not appear at once."
+    exit 0
+fi
 
 # ------------------------------------------------------------------------ --list
 if [[ "${1:-}" == --list ]]; then
@@ -202,7 +256,7 @@ echo "   $theme"
 cat <<'MSG'
 
 Done. Restart GTK applications (if blur is missing, log out and in once).
-More applications: System Settings > Desktop Effects > Better Blur DX > Force blur,
-or run this script again after installing new GTK applications.
+Run this script again after installing GTK applications. A window that is only
+transparent, without blur: tools/setup-gtk-glass.sh --pick and click it.
 Undo: tools/setup-gtk-glass.sh --off
 MSG
