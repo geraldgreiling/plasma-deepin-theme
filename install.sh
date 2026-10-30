@@ -30,6 +30,9 @@ if [[ "$ARGS" == *" --uninstall "* ]]; then
            "$DATA/icons/Deepin-Bloom-Cursors" "$DATA/icons/Deepin-Bloom-Cursors-Dark" \
            "$DATA/themes/Deepin-Glass" "$DATA/themes/Deepin-Glass-Dark" \
            "$DATA/themes/Deepin-Glass-Translucent" "$DATA/themes/Deepin-Glass-Translucent-Dark"
+    if grep -qs 'plasma-deepin-theme/install.sh' "$CONF/environment.d/krita-style.conf"; then
+        rm -fv "$CONF/environment.d/krita-style.conf"
+    fi
     echo "Removed. ~/.config/gtk-4.0/gtk.css and system wide parts (SDDM, AUR package) are left alone."
     echo "If you used --gtk-glass: tools/setup-gtk-glass.sh --off restores KWin's blur effect."
     exit 0
@@ -48,6 +51,16 @@ done
 echo ":: default settings (~/.config/deepinglassrc)"
 mkdir -p "$CONF"
 [[ -f "$CONF/deepinglassrc" ]] || cp kde/common/deepinglassrc.default "$CONF/deepinglassrc"
+
+echo ":: Krita: allow the system style (~/.config/environment.d/krita-style.conf)"
+# Krita only offers Breeze and Fusion and switches to one of them at start unless
+# KRITA_NO_STYLE_OVERRIDE is set; then it uses "Deepin Glass" like the rest
+# (takes effect after logging in again)
+mkdir -p "$CONF/environment.d"
+if [[ ! -f "$CONF/environment.d/krita-style.conf" ]]; then
+    printf '# written by plasma-deepin-theme/install.sh: Krita keeps the system widget style\nKRITA_NO_STYLE_OVERRIDE=1\n' \
+        >"$CONF/environment.d/krita-style.conf"
+fi
 
 echo ":: GTK 3/4 themes"
 for t in Deepin-Glass Deepin-Glass-Dark Deepin-Glass-Translucent Deepin-Glass-Translucent-Dark; do
@@ -112,4 +125,5 @@ Done. Next steps:
   AUR package plasma-deepin-glass(-git) or ./install.sh --native.
   GTK: System Settings > Colours & Themes > Application Style > Configure GNOME/GTK
   Application Style > "Deepin-Glass".
+  Krita: log out and in once, then Settings > Themes > "Deepin Light" / "Deepin Dark".
 MSG

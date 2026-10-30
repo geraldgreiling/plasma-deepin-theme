@@ -321,3 +321,8 @@ Kirigami-Plugin mit allen Standardwerten und Kommentaren angelegt (Vorlage
   Themen, Standard „Krita dark“), unabhängig vom System. Mit Stil „DeepinGlass“
   und Thema „Deepin Light“/„Deepin Dark“ sieht es passend aus (in der
   Testumgebung geprüft). Krita bleibt bewusst ohne Glas (Zeichenfläche OpenGL).
+* Krita ab 6.0.4 bietet nur Breeze/Fusion an und schaltet beim Start auf einen
+  davon um (`KisApplication.cpp`, `KisMainWindow.cpp`), außer
+  `KRITA_NO_STYLE_OVERRIDE` ist gesetzt. `install.sh` schreibt die Variable nach
+  `~/.config/environment.d/krita-style.conf` (nur wenn die Datei fehlt;
+  `--uninstall` entfernt sie, wenn sie von uns stammt).

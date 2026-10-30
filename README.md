@@ -133,6 +133,14 @@ are allowed to read it (`flatpak override --user --filesystem=xdg-config/gtk-4.0
 and are added to the blur list as well. libadwaita only allows colours and a few
 shapes to be overridden, so these applications keep the Adwaita layout.
 
+## Krita
+
+Krita only offers the Breeze and Fusion styles and switches to one of them at
+start unless the environment variable `KRITA_NO_STYLE_OVERRIDE` is set.
+`./install.sh` sets it in `~/.config/environment.d/krita-style.conf` (active after
+logging in again); then Krita uses Deepin Glass. Choose the colours in Krita under
+Settings → Themes → *Deepin Light* or *Deepin Dark*. Krita stays opaque.
+
 ## Troubleshooting
 
 `tools/check-glass.sh plasma-discover` lists the installed plugins, the
