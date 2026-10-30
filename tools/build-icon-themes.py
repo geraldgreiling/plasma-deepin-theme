@@ -167,10 +167,13 @@ TAG_RE = re.compile(r'<([a-zA-Z][\w:-]*)\b([^>]*?)(/?)>')
 
 
 def make_recolorable(theme_dir, text_color):
-    """Monochrome status and symbolic icons follow the colour scheme.
+    """Monochrome status, action and symbolic icons follow the colour scheme.
 
     Deepin draws its status icons for its own dock in a fixed colour: some white,
-    some black, so in a light Plasma panel part of the tray was white. KDE recolours
+    some black, so in a light Plasma panel part of the tray was white. Action icons
+    are dark grey (#536076, #303030); the dark theme inherits them, so toolbar icons
+    (e.g. Dolphin's back arrow) were hard to see in dark mode, while some of them
+    (e.g. go-next) already used the colour scheme upstream. KDE recolours
     icons that use the "current-color-scheme" stylesheet: every element painted in
     the single icon colour gets currentColor and the ColorScheme-Text class, and
     Plasma/KIconLoader insert the text colour of the surrounding colour set (light
@@ -183,7 +186,7 @@ def make_recolorable(theme_dir, text_color):
             path = os.path.join(root, name)
             if not name.endswith('.svg') or os.path.islink(path):
                 continue
-            if category != 'status' and not name.endswith('-symbolic.svg'):
+            if category not in ('status', 'actions') and not name.endswith('-symbolic.svg'):
                 continue
             with open(path, encoding='utf-8', errors='replace') as fh:
                 svg = fh.read()
@@ -228,7 +231,7 @@ def build_icons(src, out):
     for theme in (light, dark):
         declare_missing_directories(theme)
         shutil.copy(os.path.join(src, 'LICENSES', 'GPL-3.0-or-later.txt'), os.path.join(theme, 'LICENSE'))
-    print(f'icons: {light} (+{n} KDE aliases, {recoloured} recolourable status icons), {dark}')
+    print(f'icons: {light} (+{n} KDE aliases, {recoloured} recolourable status/action icons), {dark}')
 
 
 # --------------------------------------------------------------------------- cursors

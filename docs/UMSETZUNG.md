@@ -308,3 +308,16 @@ Kirigami-Plugin mit allen Standardwerten und Kommentaren angelegt (Vorlage
   Programme, die die Suche nicht findet.
 * Getestet in der Testumgebung (Ubuntu, dpkg): virt-manager wird mit
   `org.virt-manager.virt-manager` erkannt.
+
+## Ergänzung – Aktions-Icons im dunklen Modus, Krita
+
+* Deepins Aktions-Icons haben feste Grautöne (#536076, #303030). Das dunkle
+  Icon-Theme erbt sie vom hellen, Werkzeugleisten-Icons wie Dolphins
+  Zurück-Pfeil waren im dunklen Modus kaum sichtbar (go-next dagegen nutzte
+  upstream schon das Farbschema). Einfarbige Aktions-Icons folgen jetzt ebenfalls
+  dem Farbschema (`ColorScheme-Text`), zusammen mit den Status-Icons rund 1300.
+  Im hellen Modus werden sie dadurch etwas dunkler (Textfarbe statt Grau).
+* Krita legt Stil und Farben selbst fest (Menü Einstellungen → Stil bzw.
+  Themen, Standard „Krita dark“), unabhängig vom System. Mit Stil „DeepinGlass“
+  und Thema „Deepin Light“/„Deepin Dark“ sieht es passend aus (in der
+  Testumgebung geprüft). Krita bleibt bewusst ohne Glas (Zeichenfläche OpenGL).
